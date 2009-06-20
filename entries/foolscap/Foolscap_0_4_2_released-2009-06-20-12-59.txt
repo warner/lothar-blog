@@ -55,4 +55,6 @@ flappclient --furl FURL upload-file foo.jpg
 As a demo of what you can do with those two tools, I've started to update
 this very blog's back-end Git repository over a flappserver-based connection.
 The half-a-dozen computers that I use all have a copy of the "update my blog"
-FURL (really the "run git-daemon in the blog entries directory" FURL).
+FURL (really the "run git-daemon in the blog entries directory" FURL). The
+details are in the foolscap source tree, in doc/examples (in TRUNK, not in
+0.4.2). More about this in the next post.
