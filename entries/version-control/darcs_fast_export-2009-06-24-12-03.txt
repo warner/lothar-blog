@@ -20,8 +20,7 @@ Tahoe has about 4000 patches. darcs-fast-export started doing about
 170ms/patch (20 patches per second), and towards the end of the job is
 slowing to about 1.1s/patch. In contrast, when I first tried the conversion
 with tailor, the "darcs pull" operation was taking about 20 seconds per
-patch. Tailor finished after 13.5 hours. I'll update this with the time for
-darcs-fast-export as soon as it finishes (maybe in half an hour or so).
+patch. Tailor finished after 13.5 hours. darcs-fast-export took 42 minutes.
 
 darcs-fast-export also takes care of incremental updates, so I can update the
 mirror later as more darcs patches arrive. It also suggests that it can be
