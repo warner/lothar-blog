@@ -18,6 +18,6 @@ an SDK to make it easier/safer to build add-ons for Firefox (and other Mozilla a
 <li>I still hack on [http://tahoe-lafs.org/ Tahoe-LAFS] each day on the train.</li>
 <li>[http://www.bitcoin.org/ Bitcoin] is my new fascination, a decentralized cryptographically-backed currency</li>
 <li>I use Git everywhere I can.</li>
-<li>[http://foolscap.lothar.com/ Foolscap] is still going strong. I've got a hack to let you push/pull Git over a FURL, but now that Git has better proxy-the-actual-transport support, I need to rewrite that hack.</li>
+<li>[http://foolscap.lothar.com/ Foolscap] is still going strong. I've got a hack to let you push/pull Git over a FURL, but now that Git has "git-remote-helpers" support, I need to rewrite that hack.</li>
 <li>My coworker Atul has a project named [http://www.toolness.com/wp/?p=678 Pydermonkey] which is a Python binding for the SpiderMonkey JS engine. I want to tie this into either Foolscap or Tahoe, to create a safe-remote-code-execution environment. I'm still trying to sort out how it ought to work (in particular, starting with what it might be good for).</li>
 </ul>
