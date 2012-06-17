@@ -16,7 +16,7 @@ reached by C-x 4 c . All the "C-x 4" commands put things in a new window
 (which means a new region of the current "frame", where each frame gets a new
 OS-level window). This one makes an "indirect buffer" that's a mirror of the
 current one, but with a slightly different name (it gets a <2> tacked on to
-the end). Both buffers are looking at the same time, so any changes you make
+the end). Both buffers are looking at the same file, so any changes you make
 in one will also appear in the other. But you can narrow each one separately.
 So I was able to narrow to the first class in the main buffer, and narrow to
 the second class in the second buffer, and then search/study/explore as if
