@@ -1,5 +1,6 @@
 emacs
 #parser blosxom
+
 I set up a few tools to post blog entries from emacs. All entries are kept in
 CVS, and the whole tree is rsync'ed over to the web server. The elisp which
 actually publishes the entry looks like this:
