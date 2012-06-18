@@ -12,9 +12,8 @@ I think we can make a system that's both secure *and* highly usable. Some of
 the ideas I came away with that I want write up before I forget:
 
 Promises: In addition to Deferred, we can build a Promise. The usage syntax
-would look like:
+would look like::
 
-<pre>
  p = tub.getReference(url)
  p.authorize(credentials).subscribe(self)
  when(p.getReady()).addCallback(lambda res: p.trigger())
@@ -22,26 +21,23 @@ would look like:
  p3 = p2.invoke()
  d2 = when(p3)
  d2.addCallback(stuff)
-</pre>
 
 The Promise object is basically a wrapper around any Deferred that expects to
 fire with an instance. It has a __getattr__ which lets it pretend to
 implement any method. Such methods just queue the call and its arguments,
-then finish immediately, returning a new Promise. Something like:
+then finish immediately, returning a new Promise. Something like::
 
-<pre>
-class Promise:
-  def __getattr__(self, methname):
-    if self.resolved:
-        m = getattr(self.resolution, methname)
-        assert callable(m)
-        return m
-    def newmethod(*args, **kwargs):
-        self.calls.append((methname, args, kwargs))
-        # except more cleverness in case the method is invoked after the
-        # promise is resolved
-    return newmethod
-</pre>
+ class Promise:
+   def __getattr__(self, methname):
+     if self.resolved:
+         m = getattr(self.resolution, methname)
+         assert callable(m)
+         return m
+     def newmethod(*args, **kwargs):
+         self.calls.append((methname, args, kwargs))
+         # except more cleverness in case the method is invoked after the
+         # promise is resolved
+     return newmethod
 
 When the Deferred fires, all pending calls are invoked on the instance it
 fired with. Each call also returns a Promise, possibly already fulfilled,
@@ -59,19 +55,17 @@ smashed too.
 The idea is to make the asynchronous domain be the normal case, and mark the
 boundary with the synchronous domain specially. <tt>when()</tt> would be a
 function that turns a Promise into a Deferred, with which the transition
-could be scheduled:
+could be scheduled::
 
-<pre>
-def when(p):
-  if not isinstance(p, Promise):
-    return defer.succeed(p.resolution)
-  if p.resolved:
-    return defer.succeed(p.resolution)
-  else:
-    d = defer.Deferred()
-    p.waiting.append(d)
-    return d
-</pre>
+ def when(p):
+   if not isinstance(p, Promise):
+     return defer.succeed(p.resolution)
+   if p.resolved:
+     return defer.succeed(p.resolution)
+   else:
+     d = defer.Deferred()
+     p.waiting.append(d)
+     return d
 
 He pointed out that E currently has two separate method invocation syntaxes:
 'o.foo()' requires a local reference, and may or may not return a Promise. 'p
@@ -117,14 +111,12 @@ connection to an existing Tub, but keep in mind that separate TLS keys will
 require separate TCP connections.
 
 Secure PB URLs want a key as the primary specifier, followed by a list of
-location hints, followed by a Tub-scoped name.
+location hints, followed by a Tub-scoped name::
 
-<pre>
-PBY url: pby://key@1.2.3.4,foo.com,[::1],loc2,loc3/name
- key is base32(sha1(tub.pubkey))
- unix socket is trickier
- non-authenticated url still requires Tub ID
-</pre>
+ PBY url: pby://key@1.2.3.4,foo.com,[::1],loc2,loc3/name
+  key is base32(sha1(tub.pubkey))
+  unix socket is trickier
+  non-authenticated url still requires Tub ID
  
 He also feels that DoS prevention (one of the three reasons for Constraints,
 the other two being semantic typechecking assertions and API documentation)

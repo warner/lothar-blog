@@ -60,12 +60,10 @@ particular the way that an E object holding a reference to a Promise will
 eventually discover (after the promise has been resolved) that they're
 holding a reference to some other object. We don't have that sort of silent
 slot mutation in Python, so I'm trying to figure out what would be a
-meaningful equivalent. So far the Promise syntax is looking something like:
+meaningful equivalent. So far the Promise syntax is looking something like::
 
-<pre>
  p2 = send(p1).foo(args)
  #  equivalent of E's:  p2 = p1 <- foo(args)
-</pre>
 
 Of course you can also use <tt>send()</tt> on non-promises if you just want
 to do an eventual-send. This is a more precise way to accomplish what I've
@@ -78,14 +76,12 @@ sensor, so we have to do it by hand.
 
 Then, when you want to interface back to the synchronous world, you use
 <tt>when()</tt> to turn the promise into a Deferred, to which you can then
-attach some code to run:
+attach some code to run::
 
-<pre>
  def _stuff(value):
      print value
  d = when(p2)
  d.addCallback(_stuff)
-</pre>
 
 Trying to get this to work with the actual eventual-send queue and make the
 result Promises work correctly is making my head spin. I need to sit down

@@ -42,14 +42,12 @@ specific issue is that JavaButtons require a strong pullup to provide lots of
 power while they're crunching away in the crypto routines. The USB adapter
 can do this, but the Linux interface code doesn't know how to turn it on.
 <tt>lib/general/Link/USB_Linux/usblnk.c</tt> has a routine named
-<tt>hasPowerDelivery</tt>, which currently reads:
+<tt>hasPowerDelivery</tt>, which currently reads::
 
-<pre>
-SMALLINT hasPowerDelivery(int portnum)
-{
-   // Adapter supports it but not implemented yet
-   return FALSE;
-}
-</pre>
+ SMALLINT hasPowerDelivery(int portnum)
+ {
+    // Adapter supports it but not implemented yet
+    return FALSE;
+ }
 
 Sigh.
