@@ -1,5 +1,6 @@
 :title: New Blog Software
 :date: 2012-06-19 09:16
+:category: weblog
 
 Just finished moving the web site to a new host, and switching (yet again!)
 to new blog software in the process. I wanted to get rid of CGIs on the new
