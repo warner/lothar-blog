@@ -22,8 +22,8 @@ to represent the test results in a compact glyph, and then just show the last
 
 I'm not sure where else to use them yet. I'm tempted to write a Nevow
 renderer to create them, though, because that would make it a lot easier to
-insert them into other pages. That would let you use some HTML like:
-<tt>&lt;div nevow:render="sparkline" nevow:data="stuff" /&gt;</tt> and then
-implement a <tt>data_stuff</tt> method that would return whatever you wanted
-to put into the sparkline.
+insert them into other pages. That would let you use some HTML like: ``<div
+nevow:render="sparkline" nevow:data="stuff" />`` and then implement a
+`data_stuff` method that would return whatever you wanted to put into the
+sparkline.
  

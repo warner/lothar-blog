@@ -41,8 +41,8 @@ UPDATE: no, version 300 still does not support JavaButtons over USB. The
 specific issue is that JavaButtons require a strong pullup to provide lots of
 power while they're crunching away in the crypto routines. The USB adapter
 can do this, but the Linux interface code doesn't know how to turn it on.
-<tt>lib/general/Link/USB_Linux/usblnk.c</tt> has a routine named
-<tt>hasPowerDelivery</tt>, which currently reads::
+``lib/general/Link/USB_Linux/usblnk.c`` has a routine named
+``hasPowerDelivery``, which currently reads::
 
  SMALLINT hasPowerDelivery(int portnum)
  {

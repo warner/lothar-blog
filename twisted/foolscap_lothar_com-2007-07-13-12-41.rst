@@ -14,8 +14,8 @@ since URLs inside returned pages are not being rewritten, I had to use named
 virtual hosts to distinguish between, say, http://buildbot.net/trac and
 http://foolscap.lothar.com/trac .
 
-But the normal twistd.web.proxy <a
-href="http://twistedmatrix.com/trac/browser/trunk/twisted/web/proxy.py#L158">ReverseProxyResource</a>
+But the normal twistd.web.proxy `ReverseProxyResource
+<http://twistedmatrix.com/trac/browser/trunk/twisted/web/proxy.py#L158>`__
 clobbers the Host: header when it forwards the request (setting it equal to
 the new host being targeted). I suppose this is to hide the presence of the
 proxy from the new host, but in my situation is has the effect of making it

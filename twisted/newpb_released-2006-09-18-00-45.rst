@@ -2,13 +2,13 @@
 :date: 2006-09-18 00:45
 :category: twisted
 
-I finally got some twisted time this weekend, so I fixed ticket <a
-href="http://twistedmatrix.com/trac/ticket/1999">#1999</a> and moved newpb
-out of the Twisted subdirectory entirely, renaming it to <a
-href="http://twistedmatrix.com/trac/wiki/FoolsCap">Foolscap</a> in the
-process. I also released version <a
-href="http://twistedmatrix.com/~warner/Foolscap/foolscap-0.0.2.tar.gz"
->0.0.2</a>, so there's a complete tarball ready to install and play with.
+I finally got some twisted time this weekend, so I fixed ticket `#1999
+<http://twistedmatrix.com/trac/ticket/1999>`__ and moved newpb out of the
+Twisted subdirectory entirely, renaming it to `Foolscap
+<http://twistedmatrix.com/trac/wiki/FoolsCap>`__ in the process. I also
+released version `0.0.2
+<http://twistedmatrix.com/~warner/Foolscap/foolscap-0.0.2.tar.gz>`__, so
+there's a complete tarball ready to install and play with.
 
 Having it live outside the Twisted tree has a number of advantages. Twisted
 is mature enough to have moved to a slower development model that preserves
@@ -20,12 +20,11 @@ there are a distinct scarcity of people able to review newpb code. By moving
 it outside the Twisted tree, I can continue to work on it in a more suitable
 development model.
 
-In addition, moving it outside the <tt>twisted.</tt> package makes it
-<b>much</b> easier to test and deploy. When it lived in
-<tt>twisted/pb/*.py</tt>, you had to actually install it before using it,
-into the same directory as the rest of Twisted. Now that it lives in
-<tt>foolscap/*.py</tt> instead, you can run it from the source tree. This
-will make things easier for everybody.
+In addition, moving it outside the ``twisted.`` package makes it **much**
+easier to test and deploy. When it lived in ``twisted/pb/*.py``, you had to
+actually install it before using it, into the same directory as the rest of
+Twisted. Now that it lives in ``foolscap/*.py`` instead, you can run it from
+the source tree. This will make things easier for everybody.
 
 The new name is a bit of a compromise, though. I'm not entirely satisfied
 with "Foolscap". It has some good properties (google thinks it is fairly
@@ -65,17 +64,17 @@ meaningful equivalent. So far the Promise syntax is looking something like::
  p2 = send(p1).foo(args)
  #  equivalent of E's:  p2 = p1 <- foo(args)
 
-Of course you can also use <tt>send()</tt> on non-promises if you just want
+Of course you can also use ``send()`` on non-promises if you just want
 to do an eventual-send. This is a more precise way to accomplish what I've
-been (crudely) doing with <tt>reactor.callLater(0,..)</tt> all these years.
-I'm also writing a <tt>sendOnly</tt> for when you want to throw away the
+been (crudely) doing with ``reactor.callLater(0,..)`` all these years.
+I'm also writing a ``sendOnly`` for when you want to throw away the
 return value. E has compiler support for this, it knows whether the results
-of the <tt>send</tt> are used or not, and can switch between <tt>send</tt>
-and <tt>sendOnly</tt> automatically. Python does not have such a context
+of the ``send`` are used or not, and can switch between ``send``
+and ``sendOnly`` automatically. Python does not have such a context
 sensor, so we have to do it by hand.
 
 Then, when you want to interface back to the synchronous world, you use
-<tt>when()</tt> to turn the promise into a Deferred, to which you can then
+``when()`` to turn the promise into a Deferred, to which you can then
 attach some code to run::
 
  def _stuff(value):

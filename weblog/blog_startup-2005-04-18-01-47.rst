@@ -4,7 +4,7 @@
 
 I've been trying to get my project notes online for years now, and I finally
 realized that I need to start smaller. After a week of intermittent activity,
-I finally got [http://pyblosxom.sourceforge.net PyBlosxom] set up and
+I finally got `PyBlosxom <http://pyblosxom.sourceforge.net>`__ set up and
 behaving fairly well.
 
 In the process, I discovered that the CGI specification doesn't actually

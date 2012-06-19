@@ -2,16 +2,16 @@
 :date: 2005-07-29 20:07
 :category: 
 
-<pre>
-% whois lothar.com
-...
-domain:         LOTHAR.COM
-person:         Brian Warner
-nic-hdl:        BW116-GANDI
-address:        The Castle Lothar
-...
-reg_created:    1995-07-29 00:00:00
-</pre>
+::
+
+ % whois lothar.com
+ ...
+ domain:         LOTHAR.COM
+ person:         Brian Warner
+ nic-hdl:        BW116-GANDI
+ address:        The Castle Lothar
+ ...
+ reg_created:    1995-07-29 00:00:00
 
 Ten years ago today, I registered my little personal domain, with a woman at
 best.com named Pandora, who was nicely amused by the "company name". In the

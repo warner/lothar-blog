@@ -2,15 +2,14 @@
 :date: 2009-06-24 12:03
 :category: version-control
 
-So idnar just turned me on to
-<a href="http://vmiklos.hu/project/darcs-fast-export/">darcs-fast-export</a>,
-which can be used with git-fast-import to quickly convert a repository from
-
-darcs to git. I've been using Git more and more in the last few months, and
-I'm growing quite fond of it. Tahoe is managed in darcs, and I've been using
-a private Git mirror to manage the several dozen feature branches that I work
-on at any given moment. I wanted to make a more-official mirror that would be
-reasonable to publish on <a href="http://github.com/">GitHub</a>.
+So idnar just turned me on to `darcs-fast-export
+<http://vmiklos.hu/project/darcs-fast-export/>`__, which can be used with
+git-fast-import to quickly convert a repository from darcs to git. I've been
+using Git more and more in the last few months, and I'm growing quite fond of
+it. Tahoe is managed in darcs, and I've been using a private Git mirror to
+manage the several dozen feature branches that I work on at any given moment.
+I wanted to make a more-official mirror that would be reasonable to publish
+on `GitHub <http://github.com/>`__.
 
 I had to patch the darcs-fast-export script a little bit, one because our
 darcs repository happens to have some bad (non-UTF8) characters in some old

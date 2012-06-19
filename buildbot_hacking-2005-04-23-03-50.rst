@@ -2,21 +2,21 @@
 :date: 2005-04-23 03:50
 :category: 
 
-I'm pushing to get a new [http://buildbot.sf.net BuildBot] release out on
+I'm pushing to get a new `BuildBot <http://buildbot.sf.net>`__ release out on
 monday, so the last few days have been a flurry of commits (and the weekend
 will probably be the same). I was very pleased to hear that the Boost crew
-have implemented a [http://build.redshift-software.com:9990 Buildbot] to run
-their (very large) regression test suite, especially because Dave Abrahms and
-I talked about setting one up two years ago, at PyCon, and I was never able
-to give them the time to make it happen. I was even more pleased to hear that
-their goal is to move all their testing over to buildbot. You couldn't ask
-for better marketing than for the STL heir-apparent to be using your project
-:).
+have implemented a `Buildbot <http://build.redshift-software.com:9990>`__ to
+run their (very large) regression test suite, especially because Dave Abrahms
+and I talked about setting one up two years ago, at PyCon, and I was never
+able to give them the time to make it happen. I was even more pleased to hear
+that their goal is to move all their testing over to buildbot. You couldn't
+ask for better marketing than for the STL heir-apparent to be using your
+project :).
 
-Both Thomas (at [http://build.fluendo.com:8080/ Fluendo]) and the Boost folks
-have patched their buildbots to allow the waterfall display be themed with
-CSS, and the results look great. I'm looking forward to getting Thomas's code
-pulled into the mainline sources.. finally a way to make the waterfall
+Both Thomas (at `Fluendo <http://build.fluendo.com:8080/>`__) and the Boost
+folks have patched their buildbots to allow the waterfall display be themed
+with CSS, and the results look great. I'm looking forward to getting Thomas's
+code pulled into the mainline sources.. finally a way to make the waterfall
 display less ugly.
 
 Finally, the metabuildbot is shaping up. This is a buildbot that works to run

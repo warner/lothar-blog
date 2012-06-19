@@ -3,13 +3,13 @@
 :category: twisted
 
 Spent another great day down at HP, talking about implementing E and
-web-calculus concepts within Twisted and newpb. <a
-href="http://www.waterken.com">Tyler Close</a> was kind enough to spend the
-entire afternoon with me, explaining how his <a
-href="http://www.waterken.com/dev/Web/">web-calculus</a> works and the design
-decisions behind it. I'm really excited about implenting this stuff in newpb:
-I think we can make a system that's both secure *and* highly usable. Some of
-the ideas I came away with that I want write up before I forget:
+web-calculus concepts within Twisted and newpb. `Tyler Close
+<http://www.waterken.com>`__ was kind enough to spend the entire afternoon
+with me, explaining how his `web-calculus
+<http://www.waterken.com/dev/Web/>`__ works and the design decisions behind
+it. I'm really excited about implenting this stuff in newpb: I think we can
+make a system that's both secure *and* highly usable. Some of the ideas I
+came away with that I want write up before I forget:
 
 Promises: In addition to Deferred, we can build a Promise. The usage syntax
 would look like::
@@ -41,9 +41,9 @@ then finish immediately, returning a new Promise. Something like::
 
 When the Deferred fires, all pending calls are invoked on the instance it
 fired with. Each call also returns a Promise, possibly already fulfilled,
-with the results of that call, so that <tt>p.meth1().meth2()</tt> is the
-asynchronous equivalent of <tt>o.meth1().meth2()</tt>, or
-<tt>func2(func1(o))</tt>. '<tt>p.meth1(); p.meth2()</tt>' means that meth2
+with the results of that call, so that ``p.meth1().meth2()`` is the
+asynchronous equivalent of ``o.meth1().meth2()``, or
+``func2(func1(o))``. '``p.meth1(); p.meth2()``' means that meth2
 must be invoked *after* meth1: I'm not sure what other kind of sequencing
 promises to make (should we wait until meth1 has finished before invoking
 meth2?).
@@ -53,7 +53,7 @@ like an errback. No further method calls are made, any dependent Promises are
 smashed too.
 
 The idea is to make the asynchronous domain be the normal case, and mark the
-boundary with the synchronous domain specially. <tt>when()</tt> would be a
+boundary with the synchronous domain specially. ``when()`` would be a
 function that turns a Promise into a Deferred, with which the transition
 could be scheduled::
 
@@ -75,8 +75,8 @@ implication was that there were two forms, one for local and one for remote,
 whereas Tyler felt that there should only be one).
 
 Then, later, we'll create the RemotePromise, which is a Promise that's
-associated with a RemoteReference. <tt>rp.foo(args)</tt> is equivalent to
-<tt>d.addCallback(lambda res: res.callRemote("foo", args))</tt> . When
+associated with a RemoteReference. ``rp.foo(args)`` is equivalent to
+``d.addCallback(lambda res: res.callRemote("foo", args))`` . When
 Promises are serialized, they get a clid and show up as another Promises on
 the far end. You push the waiting as far away as possible, apparently this is
 the way to reduce the probability of deadlocks.
@@ -85,9 +85,9 @@ My main concern with this syntax is that it may confuse the
 synchronous-domain developers that we (as Twisted) have been trying to gently
 nudge into the world of asynchronous programming. We're not blocking, but the
 code looks a lot like that's what's happening. But, once you've stopped
-thinking that the lack of a <tt>.callLater</tt> implies immediate execution,
-the <tt>p.meth(args)</tt> syntax really is a lot cleaner. You just assume
-that <b>everything</b> could be a promise, and you use <tt>when()</tt> if you
+thinking that the lack of a ``.callLater`` implies immediate execution,
+the ``p.meth(args)`` syntax really is a lot cleaner. You just assume
+that **everything** could be a promise, and you use ``when()`` if you
 need to assure that you have an immediate value.
 
 One problem with reference counting is that your peer can force you to retain
@@ -105,7 +105,7 @@ These Tubs must be able to share listener ports, which can distinguish the
 desired Tub by its keyid. To accomplish this with newpb, I think we may need
 a module-level registry of Listeners, so that two Tubs that are asked to
 listen on the same port will register with the same Listener. (it might also
-make sense to use <tt>newtub = oldtub.makeTub()</tt>, and have the Listener
+make sense to use ``newtub = oldtub.makeTub()``, and have the Listener
 be inherited). We should pay attention to the possibility of sharing a TCP
 connection to an existing Tub, but keep in mind that separate TLS keys will
 require separate TCP connections.
@@ -117,7 +117,7 @@ location hints, followed by a Tub-scoped name::
   key is base32(sha1(tub.pubkey))
   unix socket is trickier
   non-authenticated url still requires Tub ID
- 
+
 He also feels that DoS prevention (one of the three reasons for Constraints,
 the other two being semantic typechecking assertions and API documentation)
 is difficult to implement and hard to get right, and unlikely to do the
@@ -179,6 +179,7 @@ argument name/type docs too.
 
 
 positional parameters for interoperability with java:
+-----------------------------------------------------
 
 java doesn't have keyword args. To provide interoperability, the python-newpb
 method call serializer needs to send args in strict order, the java newpb
