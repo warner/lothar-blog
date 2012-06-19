@@ -1,6 +1,5 @@
 :title: new kernel options
 :date: 2005-10-29 14:04
-:category: 
 
 I'm in the process of upgrading my systems to linux-2.6.14, and noticed a
 couple of neat patches that made it into the kernel this time around.

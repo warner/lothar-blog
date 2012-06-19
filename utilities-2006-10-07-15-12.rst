@@ -1,6 +1,5 @@
 :title: utilities
 :date: 2006-10-07 15:12
-:category: 
 
 ``/usr/bin/watch`` is a little utility that will erase the screen, run a
 command, sleep for a few seconds, then repeat. You can use it to follow files

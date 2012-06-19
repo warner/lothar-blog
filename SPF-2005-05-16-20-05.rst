@@ -1,6 +1,5 @@
 :title: SPF
 :date: 2005-05-16 20:05
-:category: 
 
 I've been trying to decide whether to publish an SPF record for lothar.com or
 not. The last few days have seen an absolute deluge of spam from some german

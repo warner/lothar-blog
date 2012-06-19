@@ -1,6 +1,5 @@
 :title: projects
 :date: 2010-11-24 13:49
-:category: 
 
 Must.. write.. more. I'm trying to get over the temptation to rewrite my blog
 software again (probably using `Jekyll <https://github.com/mojombo/jekyll/>`__).

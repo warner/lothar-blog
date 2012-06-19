@@ -1,6 +1,5 @@
 :title: antispam
 :date: 2006-03-29 01:45
-:category: 
 
 I ran some stats on my spambuckets tonight, comparing which of my email
 addreses get a lot of spam now versus 6 months ago, and noticed a few

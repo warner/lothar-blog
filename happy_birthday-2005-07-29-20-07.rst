@@ -1,6 +1,5 @@
 :title: happy birthday!
 :date: 2005-07-29 20:07
-:category: 
 
 ::
 

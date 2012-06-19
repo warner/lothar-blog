@@ -1,6 +1,5 @@
 :title: Trac
 :date: 2007-01-29 02:29
-:category: 
 
 I've been setting up a `Trac <http://trac.edgewall.org/>`_ instance for
 `Buildbot <http://buildbot.sf.net>`_, to make it easier for people other

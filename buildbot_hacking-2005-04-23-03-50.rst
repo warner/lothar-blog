@@ -1,6 +1,5 @@
 :title: buildbot hacking
 :date: 2005-04-23 03:50
-:category: 
 
 I'm pushing to get a new `BuildBot <http://buildbot.sf.net>`__ release out on
 monday, so the last few days have been a flurry of commits (and the weekend

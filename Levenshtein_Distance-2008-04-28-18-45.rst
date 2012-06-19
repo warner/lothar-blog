@@ -1,6 +1,5 @@
 :title: Levenshtein Distance
 :date: 2008-04-28 18:45
-:category: 
 
 A library just showed up in debian ("python-levenshtein") to measure the
 `Levenshtein Distance <http://en.wikipedia.org/wiki/Levenshtein_Distance>`_
