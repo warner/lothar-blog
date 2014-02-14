@@ -3,6 +3,7 @@
 :category: emacs
 
 C-x 4 c : clone-indirect-buffer-other-window
+!END-SUMMARY!
 
 I keep learning new tricks in emacs. Today I was studying an overstuffed
 file, with two large classes, and I needed to navigate around both as I

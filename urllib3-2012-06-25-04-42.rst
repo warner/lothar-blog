@@ -4,7 +4,9 @@
 
 Today I learned about the `urllib3 <http://pypi.python.org/pypi/urllib3>`__
 module. The biggest feature (from my point of view) is that this one can
-properly validate SSL sessions. The python 2.x ``urllib``, ``urllib2``, and
+properly validate SSL sessions.
+!END-SUMMARY!
+The python 2.x ``urllib``, ``urllib2``, and
 ``httplib`` libraries all vaguely speak SSL, but none of them actually look
 at the certificate they receive (and will cheerfully silently connect to a
 man-in-the-middle). This mode only provides protection against passive

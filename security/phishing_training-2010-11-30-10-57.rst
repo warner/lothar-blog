@@ -4,6 +4,7 @@
 
 I stopped by the bank this morning to make a deposit. While fussing with the
 ATM machine, I was listening to a nearby bank employee making a phone call.
+!END-SUMMARY!
 His side of the conversation went like: "Hi, this is Bob from $YOURBANK. Your
 father just opened an account with us, and I'd like to give you the referral
 credit for it, but I don't have your account number here. Could you read it

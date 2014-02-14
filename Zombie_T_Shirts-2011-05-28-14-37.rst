@@ -3,6 +3,7 @@
 
 Just wanted to say hi to Dave and mention his nerd t-shirt store at
 http://www.nerdkungfu.com .
+!END-SUMMARY!
 
 He's a regular at our weekly Bad Movie Night, and I think a lot of the movies
 we've screened have shown up as t-shirts on his site a few weeks later. If

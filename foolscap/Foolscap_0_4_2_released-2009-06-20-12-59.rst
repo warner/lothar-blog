@@ -3,7 +3,10 @@
 :category: foolscap
 
 I've released foolscap-0.4.2 .. download it from
-http://foolscap.lothar.com/trac . I made the relase last week, and as usual
+http://foolscap.lothar.com/trac . 
+!END-SUMMARY!
+
+I made the relase last week, and as usual
 I've managed to not send out the announcement email yet. One reason for that
 is that I wanted to blog about it first, and I've started using a
 foolscap-0.4.2 -based tool to manage my blog, and I effectively got into a
