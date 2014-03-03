@@ -1,6 +1,7 @@
 :title: sparkfun toys
 :date: 2007-07-20 18:46
 :category: hardware
+:slug: 33-sparkfun-toys
 
 I was thumbing through some of my old `del.icio.us
 <http://del.icio.us/warner>`__ bookmarks today, and came across `sparkfun

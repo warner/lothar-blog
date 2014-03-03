@@ -1,6 +1,7 @@
 :title: forgetfulness-based development
 :date: 2007-03-05 17:55
 :category: python
+:slug: 29-forgetfullness-based-development
 
 You're probably familiar with eXtreme Programming, and branch-based
 development, and agile development. But I've discovered that I've been using

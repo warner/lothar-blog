@@ -1,5 +1,6 @@
 :title: great week
 :date: 2005-05-21 15:08
+:slug: 11-great-week
 
 Man, what a great week. I spent a couple of days working with `Donovan
 <http://ulaluma.com/pyx/>`__ at his office on a couple of issues: making

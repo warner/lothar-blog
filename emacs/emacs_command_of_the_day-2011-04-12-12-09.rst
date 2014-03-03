@@ -1,6 +1,7 @@
 :title: emacs command of the day
 :date: 2011-04-12 12:09
 :category: emacs
+:slug: 44-emacs-command-of-the-day
 
 C-x 4 c : clone-indirect-buffer-other-window
 !END-SUMMARY!

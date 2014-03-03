@@ -1,6 +1,7 @@
 :title: urllib3
 :date: 2012-06-25 04:42
 :category: python
+:slug: 47-urllib3
 
 Today I learned about the `urllib3 <http://pypi.python.org/pypi/urllib3>`__
 module. The biggest feature (from my point of view) is that this one can

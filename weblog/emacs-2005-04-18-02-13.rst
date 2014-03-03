@@ -1,6 +1,7 @@
 :title: emacs
 :date: 2005-04-18 02:13
 :category: weblog
+:slug: 2-emacs
 
 I set up a few tools to post blog entries from emacs. All entries are kept in
 CVS, and the whole tree is rsync'ed over to the web server. The elisp which

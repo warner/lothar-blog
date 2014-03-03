@@ -1,6 +1,7 @@
 :title: phishing training
 :date: 2010-11-30 10:57
 :category: security
+:slug: 43-phishing-training
 
 I stopped by the bank this morning to make a deposit. While fussing with the
 ATM machine, I was listening to a nearby bank employee making a phone call.

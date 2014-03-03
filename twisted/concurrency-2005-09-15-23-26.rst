@@ -1,6 +1,7 @@
 :title: concurrency
 :date: 2005-09-15 23:26
 :category: twisted
+:slug: 19-concurrency
 
 Had a great chat with `Donovan <http://ulaluma.com/pyx/>`__ today, about
 newpb and E and secure python and concurrency management. It turns out we

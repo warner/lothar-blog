@@ -1,6 +1,7 @@
 :title: Foolscap-0.4.2 released
 :date: 2009-06-20 12:59
 :category: foolscap
+:slug: 40-Foolscap
 
 I've released foolscap-0.4.2 .. download it from
 http://foolscap.lothar.com/trac . 

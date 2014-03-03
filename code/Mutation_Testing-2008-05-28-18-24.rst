@@ -1,6 +1,7 @@
 :title: Mutation Testing
 :date: 2008-05-28 18:24
 :category: code
+:slug: 36-Mutation-Testing
 
 I've often thought that it would be a great idea to test your test suite by
 randomly changing bits of code and seeing if the tests catch it. It turns out

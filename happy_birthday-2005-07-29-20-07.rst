@@ -1,5 +1,6 @@
 :title: happy birthday!
 :date: 2005-07-29 20:07
+:slug: 18-happy-birthday
 
 ::
 

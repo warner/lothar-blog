@@ -1,6 +1,7 @@
 :title: blog startup
 :date: 2005-04-18 01:47
 :category: weblog
+:slug: 1-blog-startup
 
 I've been trying to get my project notes online for years now, and I finally
 realized that I need to start smaller. After a week of intermittent activity,

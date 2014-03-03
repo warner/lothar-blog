@@ -1,5 +1,6 @@
 :title: mercurial
 :date: 2007-07-09 21:29
+:slug: 30-mercurial
 
 Wow, so long since I updated this. Each time I remember that I **do** have
 a technical blog, and think to add something to it, I am tempted to start by

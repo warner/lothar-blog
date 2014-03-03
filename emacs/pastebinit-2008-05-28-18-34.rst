@@ -1,6 +1,7 @@
 :title: pastebinit
 :date: 2008-05-28 18:34
 :category: emacs
+:slug: 37-pastebinit
 
 Another package that appeared in debian today: pastebinit, which is a
 command-line tool to upload bits of code to some of the various pastebin web

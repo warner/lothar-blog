@@ -1,6 +1,7 @@
 :title: Twist-E
 :date: 2005-05-27 18:00
 :category: twisted
+:slug: 15-Twist-E
 
 Spent another great day down at HP, talking about implementing E and
 web-calculus concepts within Twisted and newpb. `Tyler Close

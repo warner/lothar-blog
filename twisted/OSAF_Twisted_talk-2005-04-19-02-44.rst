@@ -1,6 +1,7 @@
 :title: OSAF Twisted talk
 :date: 2005-04-19 02:44
 :category: twisted
+:slug: 3-OSAF-Twisted-talk
 
 This is a rough outline of the talk I'll be giving at the OSAF tomorrow.
 

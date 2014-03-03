@@ -1,5 +1,6 @@
 :title: iButtons
 :date: 2005-05-16 11:27
+:slug: 9-iButtons
 
 I was talking with Pavel (aka PenguinOfDoom, on #twisted) last week about
 iButtons, and mentioned the JavaButton I picked up years ago that I haven't

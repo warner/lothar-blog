@@ -1,6 +1,7 @@
 :title: darcs-fast-export
 :date: 2009-06-24 12:03
 :category: version-control
+:slug: 41-darcs-fast-export
 
 So idnar just turned me on to `darcs-fast-export
 <http://vmiklos.hu/project/darcs-fast-export/>`__, which can be used with

@@ -1,5 +1,6 @@
 :title: sparklines
 :date: 2005-05-07 12:40
+:slug: 8-sparklines
 
 My friend Drew just sent this one along:
 

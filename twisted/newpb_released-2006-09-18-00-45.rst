@@ -1,6 +1,7 @@
 :title: newpb-0.0.2 released
 :date: 2006-09-18 00:45
 :category: twisted
+:slug: 22-newpb-released
 
 I finally got some twisted time this weekend, so I fixed ticket `#1999
 <http://twistedmatrix.com/trac/ticket/1999>`__ and moved newpb out of the

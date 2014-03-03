@@ -1,6 +1,7 @@
 :title: foolscap.lothar.com
 :date: 2007-07-13 12:41
 :category: twisted
+:slug: 31-foolscap.lothar.com
 
 I just finished building a Trac instance for Foolscap, now online at
 http://foolscap.lothar.com/trac . It's got a (mercurial-based) code browser,

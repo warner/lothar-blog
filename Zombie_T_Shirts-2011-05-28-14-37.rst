@@ -1,5 +1,6 @@
 :title: Zombie T-Shirts
 :date: 2011-05-28 14:37
+:slug: 45-Zombie-T-Shirts
 
 Just wanted to say hi to Dave and mention his nerd t-shirt store at
 http://www.nerdkungfu.com .

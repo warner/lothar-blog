@@ -1,6 +1,7 @@
 :title: web updates
 :date: 2008-05-29 18:59
 :category: web
+:slug: 38-web-updates
 
 I finally updated the system that hosts http://buildbot.net and
 http://foolscap.lothar.com (a dedicated VM that just runs apache for CGIs,

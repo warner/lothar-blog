@@ -1,6 +1,7 @@
 :title: pyblosxom-noindex
 :date: 2005-05-04 03:13
 :category: weblog
+:slug: 7-pyblosxom-noindex
 
 After some amount of perseverance, I finally figured out how to make
 pyblosxom insert "noindex" meta tags in the top-level index page. This was

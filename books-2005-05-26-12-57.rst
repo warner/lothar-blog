@@ -1,5 +1,6 @@
 :title: books
 :date: 2005-05-26 12:57
+:slug: 14-books
 
 I started in on Alastair Reynolds' `Century Rain` last night, got about
 halfway through before I finally succumbed to sleep. It's a good read:

@@ -1,6 +1,7 @@
 :title: new microcontrollers
 :date: 2006-09-24 18:19
 :category: hardware
+:slug: 24-new-microcontrollers
 
 I've been playing with `Phidgets <http://www.phidgets.com/>`__ recently,
 having a lot of `fun <http://www.lothar.com/Projects/Phidgets/>`__. They're

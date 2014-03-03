@@ -1,6 +1,7 @@
 :title: trac spam
 :date: 2007-07-17 00:47
 :category: spam
+:slug: 32-trac-spam
 
 Oh happy day! The `buildbot.net <http://buildbot.net>`__ trac instance just
 recently got visited by the link spammers. They haven't caused any actual

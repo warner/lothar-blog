@@ -1,6 +1,7 @@
 :title: twisted talk
 :date: 2005-04-20 01:15
 :category: twisted
+:slug: 4-twisted-talk
 
 So I think the talk went really well. I spoke for about an hour before the
 room was needed for another meeting, to about 10 or 15 OSAF developers. I

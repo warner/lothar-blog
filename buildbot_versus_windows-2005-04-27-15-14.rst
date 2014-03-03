@@ -1,5 +1,6 @@
 :title: buildbot versus windows
 :date: 2005-04-27 15:14
+:slug: 6-buildbot-versus-windows
 
 I just spent several hours getting a reasonable python environment working
 under Windows, something I had hoped to never have a need for. The Buildbot

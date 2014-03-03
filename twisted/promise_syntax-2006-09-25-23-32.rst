@@ -1,6 +1,7 @@
 :title: promise syntax
 :date: 2006-09-25 23:32
 :category: twisted
+:slug: 25-promise-syntax
 
 Zooko's in town, and already I feel 20% smarter. I roped him into a
 discussion about the Promise syntax I'm developing for Foolscap, and he

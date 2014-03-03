@@ -1,6 +1,7 @@
 :title: Go Tools
 :date: 2005-05-28 12:29
 :category: go
+:slug: 16-Go-Tools
 
 I was talking with my brother-in-law about a gadget to make playing Go online
 a bit more like playing it in person. The feel of the board and the THWACK!
