@@ -36,7 +36,7 @@ entropy to "little" machines. But I can't plug a USB device into my remote
 virtual servers. So it's pretty common to want to deliver the entropy from my
 (real) home computer to the (virtual) remote boxes. Can this be done safely?
 
-Nope!
+## Nope!
 
 Well, mostly nope: it depends upon how you define the threat model. First,
 let's go over some background.
@@ -225,3 +225,5 @@ actually entropy, so attacker-supplied data shouldn't count. But after you've
 reached the initial threshold, when (in my opinion) you don't bother counting
 entropy any more, then it doesn't hurt to throw anything and everything into
 the pool.
+
+([cross-posted](http://blog.mozilla.org/warner/2014/03/04/remote-entropy/) to my [work blog](http://blog.mozilla.org/warner))
