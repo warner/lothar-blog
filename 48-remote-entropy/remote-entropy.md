@@ -1,5 +1,5 @@
 Slug: 48-remote-entropy
-Date: 2014-03-03 17:33
+Date: 2014-03-04 10:29
 Title: remote entropy
 Category: security
 
@@ -129,7 +129,7 @@ The real world isn't quite this bad, for a few reasons:
   race conditions. The ideal kernel RNG would hash all of memory all the
   time, to make it maximally sensitive to system state. Unfortunately, that's
   expensive and intrusive ("hey! the kernel is reading my private user data
-  and publishing some derivative of it to the world"), and good engineering
+  and publishing some derivative of it to the world!"), and good engineering
   practice (modularity) prefers small sub-systems with *reduced* sensitivity
   to unrelated inputs, so we may not get as much benefit from this as we'd
   like.
@@ -212,11 +212,11 @@ protect you against using the RNG before it's really ready, which makes a lot
 of sense (see [Mining Your Ps and Qs](https://factorable.net/) for evidence
 of failures here). The second is to protect you against attackers who have
 infinite computational resources, by attempting to distinguish between
-computational randomness and information-theoretic randomness. This latter
-one is kind of silly, in my mind. Like other folks, I think there should be
-one kernel source of entropy, it should start in the "off" mode (return
-errors) until someone tells it that it is ready, and switch to the "on" mode
-forevermore (never return errors or block).
+computational "randomness" and information-theoretic randomness. This latter
+distinction is kind of silly, in my mind. Like other folks, I think there
+should be one kernel source of entropy, it should start in the "off" mode
+(return errors) until someone tells it that it is ready, and switch to the
+"on" mode forevermore (never return errors or block).
 
 But I'll have to cover that in another post. The upshot is that it isn't safe
 to make this startup-time off-to-on mode switch unless you have some
