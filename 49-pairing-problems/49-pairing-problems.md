@@ -105,4 +105,4 @@ But we want to bring back pairing some day. How can we do it better next time? H
 
 I still believe in building something new when it's better than the status quo, even if it means you must educate your users. But I guess I appreciate the challenges more now than I did four years ago.
 
-([cross-posted](http://blog.mozilla.org/warner/2014/04/01/pairing-problems/) to my [work blog](http://blog.mozilla.org/warner))
+([cross-posted](http://blog.mozilla.org/warner/2014/04/02/pairing-problems/) to my [work blog](http://blog.mozilla.org/warner))
