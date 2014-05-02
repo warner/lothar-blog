@@ -11,21 +11,29 @@ setup process. In this post, I want to describe a little bit about the protocol 
 
 ## New Requirements
 
-To recap the last post, the biggest frustration we saw with the old Sync was that it didn't "work like other systems": users *thought* that their email and password would be sufficient to get their data back, but in fact it really required access to a device that was already attached to your account. This made it unsuitable for people with a single device, and made it mostly impossible to recover from the all-to-common case of losing your only browser.
+To recap the last post, the biggest frustration we saw with the old Sync setup process was that it didn't "work like other systems": users *thought* that their email and password would be sufficient to get their data back, but in fact it really required access to a device that was already attached to your account. This made it unsuitable for people with a single device, and made it mostly impossible to recover from the all-too-common case of losing your only browser.
 
 So the biggest new requirement for Sync was to make your data recoverable with just email+password.
 
 We've retained the requirement that Sync data is end-to-end encrypted, using a key that is only available to you and your personal devices.
 
-And finally, we're rolling out a new system called Firefox Accounts, which will be used to manage access to new server-based features like the application marketplace and FirefoxOS-specific services. So the third requirement was to make Sync work well with the new Accounts.
+And finally, we're rolling out a new system called Firefox Accounts, aka "FxA", which will be used to manage access to new server-based features like the application marketplace and FirefoxOS-specific services. The third requirement was to make Sync work well with the new Accounts.
 
 ## Firefox Accounts: Login + Keys
 
-So we designed Firefox Accounts to support both the needs of traditional login-only applications, *and* provide the secrets necessary to safely encrypt your Sync data.
+So we designed Firefox Accounts to both support the needs of traditional login-only applications, *and* provide the secrets necessary to safely encrypt your Sync data.
 
-Each account has two encryption keys. One of them, which we call "kA", is used for "recoverable data". That means you, the account owner, can recover this data even if you forget the account password. As long as you can still receive email at the registered address, you can reset the account (to a new password) and get back "kA", along with any data encrypted under it.
+Each account has two encryption keys. Sync uses a key called "kB", which is protected by your account password (in technical terms, the FxA server holds a "wrapped copy" of kB, which requires your password to unwrap). To access any data encrypted under kB, you must remember your password. This means that anyone who *doesn't* know the password can't see your data.
 
-The second key is called "kB", and is used for data that's locked to your password. 
+If you forget the password, you'll have to reset the account and create a new kB, which will erase both the old kB and the data it was protecting. This is a necessary consequence of properly protecting kB with the password: if there were any other way for you to recover the data without the password, then a bad guy could do the same thing.
+
+FxA also manages a second key named "kA", which can be used for "recoverable data". We don't have any applications which use kA yet, but we might add some in the future. This key is stored by the server without wrapping, so that you, the account owner, can recover this data even if you forget the account password. As long as you can still receive email at the registered address, you can reset the account (to a new password) and get back "kA", along with any data encrypted under it.
+
+"kA" and "kB" are "root" keys: each application will get a distinct derivative
+
+In addition to the two 
+
+The server is never told your password. The [key-wrapping protocol](https://github.com/mozilla/fxa-auth-server/wiki/onepw-protocol#-fetching-sync-keys) uses "key-stretching" on your password before sending anything to the server, to make it hard for the compromised server to even attempt to guess your password. And the data stored on the server is stretched even further, to make static compromises of the server's database less useful to an attacker.
 
 ## ...
 
@@ -40,6 +48,17 @@ But in Firefox 29, due to be released next month, Sync will switch to using Fire
 
 This post provides a brief description of the new protocol we're using for Sync in FF29.
 
+## What Does It Look Like?
+
+In FF29, when you set up Sync for the first time, you'll see a regular box that asks for an email address and a (new) password:
+
+![FF 29 Sync Account-Creation Dialog](./create.png)
+
+You fill that out, hit the button, then the server sends you a confirmation email. Click on the link in the email, and your browser automatically creates an encryption key and starts uploading ciphertext.
+
+Connecting a second device to your account is as simple as signing in with the same email and password:
+
+![FF 29 Sync Sign-In Dialog](./sign-in.png)
 
 
 
