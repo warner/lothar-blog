@@ -50,13 +50,13 @@ For full details, take a look at the [key-wrapping protocol specs](https://githu
 
 In FF29, when you set up Sync for the first time, you'll see a box that asks for an email address and a (new) password:
 
-<img alt="FF 29 Sync Account-Creation Dialog" src="./create.png" height="400px"/>
+<img alt="FF 29 Sync Account-Creation Dialog" src="./create.png" width="270px" />
 
 You fill that out, hit the button, then the server sends you a confirmation email. Click on the link in the email, and your browser automatically creates an encryption key (kB) and starts uploading ciphertext.
 
 Connecting a second device to your account is as simple as signing in with the same email and password:
 
-<img alt="FF 29 Sync Sign-In Dialog" src="./sign-in.png" height="400px"/>
+<img alt="FF 29 Sync Sign-In Dialog" src="./sign-in.png" width="270px" />
 
 ## Security Properties
 
