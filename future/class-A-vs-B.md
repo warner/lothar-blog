@@ -1,0 +1,2 @@
+
+FxA also manages a second key named "kA", which can be used for "recoverable data". We don't have any applications which use kA yet, but we might add some in the future. This key is stored by the server without wrapping, so it can give the key back to you even if you forget the account password. As long as you can still receive email at the registered address, you can reset the account (to a new password) and get back "kA", along with any data encrypted under it. A necessary consequence is that an attacker who manages to compromise the auth server will learn kA too.
