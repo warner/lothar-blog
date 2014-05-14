@@ -6,7 +6,7 @@ Title: The new Sync protocol
 
 [Last time](../49-pairing-problems) I described the user difficulties we observed with the pairing-based Sync we shipped in Firefox 4.0. In late April, we released Firefox 29, with a new password-based Sync setup process. In this post, I want to describe a little bit about the protocol we use in the new system, and the security properties you can expect to get out of it.
 
-(for the gory details, you can jump directly to the full [technical definition](https://github.com/mozilla/fxa-auth-server/wiki/onepw-protocol) of the protocol, which we've nicknamed "onepw", since there is now just "one password" to protect both account access and your encrypted data)
+(for the cryptographic details, you can jump directly to the full [technical definition](https://github.com/mozilla/fxa-auth-server/wiki/onepw-protocol) of the protocol, which we've nicknamed "onepw", since there is now just "one password" to protect both account access and your encrypted data)
 
 ## New Requirements
 
@@ -22,7 +22,7 @@ And finally, we're rolling out a new system called Firefox Accounts, aka "FxA", 
 
 So we designed Firefox Accounts to both support the needs of basic login-only applications, *and* provide the secret keys necessary to safely encrypt your Sync data, while using traditional credentials (email+password) instead of pairing.
 
-The login portion uses BrowserID-like certificates, with a "principal" of your GUID-based FxA account identifier. These are used to create a "[Backed Identity Assertion](https://github.com/mozilla/id-specs/blob/prod/browserid/index.md#backed-identity-assertion)", which can be presented (as a bearer token) to a server to prove control over the account. The Sync "Tokenserver" requires one of these before granting read/write access to the encrypted data it manages.
+The login portion uses BrowserID-like certificates, with a "principal" of your GUID-based FxA account identifier. These are used to create a "[Backed Identity Assertion](https://github.com/mozilla/id-specs/blob/prod/browserid/index.md#backed-identity-assertion)", which can be presented (as a bearer token) to a server to prove control over the account. The Sync "tokenserver" requires one of these assertions before granting read/write access to the encrypted data it manages.
 
 Each account also manages a few encryption keys, one of which is used to encrypt your Sync data.
 
@@ -44,7 +44,7 @@ This section describes how the new Firefox Accounts login protocol protects the 
 
 ### Encryption Keys
 
-Each account has two encryption keys, which are used to protect two distinct classes of data: recoverable "class-A", and password-protected "class-B". Nothing uses class-A yet, so I'll put that off until a future article.
+Each account has two full-strength 256-bit encryption keys, which are used to protect two distinct classes of data: recoverable "class-A", and password-protected "class-B". Nothing uses class-A yet, so I'll put that off until a future article.
 
 Sync data falls into class B, and uses a key called "kB", which is protected by your account password. In technical terms, the FxA server holds a "wrapped copy" of kB, which requires your password to unwrap. To access any data encrypted under kB, you must remember your password. This means that anyone who **doesn't** know the password can't see your data.
 
@@ -96,7 +96,7 @@ Resetting the account will necessarily erase any data stored on the server. To b
 
 If you reset your account from a browser that was already syncing and up-to-date, then it will simply repopulate the server with your bookmarks/etc, and nothing will be lost. It's also fine to reset your account from one (empty) browser, then reconnect a second (full) browser: your data will be merged, and everything will eventually be available on both devices.
 
-The one case where you can't recover your old data is if you lose or break your only device and also forget your password. In this case, when you reset your account from a new (empty) browser, then your old Sync data is lost, and you'll have to start again from a blank slate. You may want to write down your password in a safe place at home to avoid this.
+The one case where you can't recover your old data is if you lose or break your only device and also forget your password. In this case, when you reset your account from a new (empty) browser, then your old Sync data is lost, and you'll have to start again from a blank slate. You may want to write down your password in a safe place at home to avoid this, sort of like leaving a spare housekey with a trusted neighbor in case you lose your own.
 
 ### What If I'm Already Running Sync?
 
