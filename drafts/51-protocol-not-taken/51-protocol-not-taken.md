@@ -2,10 +2,10 @@ Slug: 51-protocol-not-taken
 Date: 2014-03-26 17:16
 Title: The (protocol) Road Not Taken
 
-With luck, Firefox 29 will ship in late april with a new password-based Sync
+Firefox 29 shipped in late april with a new password-based Sync
 setup process. The protocol, named "onepw", is
 [defined here](https://github.com/mozilla/fxa-auth-server/wiki/onepw-protocol).
-This [replaces](../49-pairing-problems) the J-PAKE pairing-based protocol that we've been using since
+This [replaces](../49-pairing-problems) the J-PAKE pairing-based protocol that we'd been using since
 Firefox 4.0 in March of 2011.
 
 But until last December, we were planning to use a larger protocol, now known
@@ -95,5 +95,3 @@ stretching on the server, we can improve the protection in the future (by
 doing more stretching, or using techniques from the upcoming
 [Password Hashing Competition](https://password-hashing.net/)). And we can
 provide a more consistent experience to users of all kinds of devices.
-
-The next post will give an overview of the "onepw" protocol.
