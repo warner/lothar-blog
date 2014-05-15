@@ -2,15 +2,15 @@ Slug: 50-new-sync-protocol
 Date: 2014-03-25 18:05
 Title: The new Sync protocol
 
-(This wraps up a two-part series on upcoming changes in Firefox Sync, based on [my presentation](http://people.mozilla.org/~bwarner/warner-rwc2014/#/) at [RealWorldCrypto 2014](http://realworldcrypto.wordpress.com/). Part 1 was about problems we observed in the old system. Part 2 is about the system which replaces it.)
+(This wraps up a two-part series on recent changes in Firefox Sync, based on [my presentation](http://people.mozilla.org/~bwarner/warner-rwc2014/#/) at [RealWorldCrypto 2014](http://realworldcrypto.wordpress.com/). Part 1 was about problems we observed in the old system. Part 2 is about the system which replaces it.)
 
 [Last time](../../blog/49-pairing-problems) I described the user difficulties we observed with the pairing-based Sync we shipped in Firefox 4.0. In late April, we released Firefox 29, with a new password-based Sync setup process. In this post, I want to describe a little bit about the protocol we use in the new system, and the security properties you can expect to get out of it.
 
-(for the cryptographic details, you can jump directly to the full [technical definition](https://github.com/mozilla/fxa-auth-server/wiki/onepw-protocol) of the protocol, which we've nicknamed "onepw", since there is now just "one password" to protect both account access and your encrypted data)
+(For the cryptographic details, you can jump directly to the full [technical definition](https://github.com/mozilla/fxa-auth-server/wiki/onepw-protocol) of the protocol, which we've nicknamed "onepw", since there is now just "one password" to protect both account access and your encrypted data)
 
 ## New Requirements
 
-To recap the last post, the biggest frustration we saw with the old Sync setup process was that it didn't "work like other systems": users *thought* that their email and password would be sufficient to get their data back, but in fact it really required access to a device that was already attached to your account. This made it unsuitable for people with a single device, and made it mostly impossible to recover from the all-too-common case of losing your only browser.
+To recap the last post, the biggest frustration we saw with the old Sync setup process was that it didn't "work like other systems": users *thought* that their email and password would be sufficient to get their data back, but in fact it required access to a device that was already attached to your account. This made it unsuitable for people with a single device, and made it mostly impossible to recover from the all-too-common case of losing your only browser.
 
 So the biggest new requirement for Sync was to make your data recoverable with just email+password.
 
@@ -22,7 +22,7 @@ And finally, we're rolling out a new system called Firefox Accounts, aka "FxA", 
 
 So we designed Firefox Accounts to both support the needs of basic login-only applications, *and* provide the secret keys necessary to safely encrypt your Sync data, while using traditional credentials (email+password) instead of pairing.
 
-The login portion uses BrowserID-like certificates, with a "principal" of your GUID-based FxA account identifier. These are used to create a "[Backed Identity Assertion](https://github.com/mozilla/id-specs/blob/prod/browserid/index.md#backed-identity-assertion)", which can be presented (as a bearer token) to a server to prove control over the account. The Sync "tokenserver" requires one of these assertions before granting read/write access to the encrypted data it manages.
+The login portion uses BrowserID-like certificates, with a "principal" of your GUID-based FxA account identifier. These are used to create a "[Backed Identity Assertion](https://github.com/mozilla/id-specs/blob/prod/browserid/index.md#backed-identity-assertion)", which can be presented (as a bearer token) to a server to prove control over the account. The Sync servers require one of these assertions before granting read/write access to the encrypted data they manages.
 
 Each account also manages a few encryption keys, one of which is used to encrypt your Sync data.
 
@@ -50,13 +50,13 @@ Sync data falls into class B, and uses a key called "kB", which is protected by 
 
 If you forget the password, you'll have to reset the account and create a new kB, which will erase both the old kB and the data it was protecting. This is a necessary consequence of properly protecting kB with the password: if there were any other way for **you** to recover the data without the password, then a bad guy could do the same thing.
 
-"kB" is a "root" key: each application will get a distinct derivative key for their own class-B data. That way each application gets its own encryption key, so they won't be able to decrypt data that was meant for a different application. Sync is the only application we have so far, but we may add more in the future.
+"kB" is a "root" key: each application (like Sync) will get a distinct derivative key for their own class-B data. That way each application gets its own encryption key, so they won't be able to decrypt data that was meant for a different application. Sync is the only application we have so far, but we may add more in the future.
 
 ### Keeping your secrets safe
 
 To make sure your class-B data really is tied to your password, we must avoid ever letting the server figure out your password. The first line of defense is that the server is never told your raw password: you must prove that you know the password, but that's not the same thing as revealing it. The client sends a hashed form of the password instead.
 
-The second line of defense is that the protocol uses "key-stretching" on the password before sending anything to the server, to make it hard for the compromised server to even attempt to guess your password. This stretching is pretty lightweight (1000 rounds of [PBKDF2-SHA256](https://tools.ietf.org/html/rfc2898#section-5.2)), but only needs to protect against the attacker who gets to see the stretched password in-flight (either because they compromised the server, or they've somehow broken TLS).
+The second line of defense is that the protocol uses "key-stretching" on the password before sending anything to the server, to make it hard for a compromised server to even attempt to guess your password. This stretching is pretty lightweight (1000 rounds of [PBKDF2-SHA256](https://tools.ietf.org/html/rfc2898#section-5.2)), but only needs to protect against the attacker who gets to see the stretched password in-flight (either because they compromised the server, or they've somehow broken TLS).
 
 Finally, the data stored on the server is stretched even further, to make a static compromise of the server's database less useful to an attacker. This uses the "[scrypt](http://www.tarsnap.com/scrypt.html)" algorithm, with parameters of (N=64k, r=8, p=1). At these settings, scrypt takes 64MB of memory, and about a second of CPU time.
 
@@ -80,7 +80,7 @@ The main factor is how well you generate the password. The best passwords are ra
 
 The difficulty of testing each guess depends upon what the attacker has managed to steal. Regular attackers out on the internet are limited to "online guessing", which means they just try to sign in with your email address and their guessed password, one at a time, and see whether it works or not. This is rate-limited by the server, so they'll only get dozens or maybe hundreds of guesses before the server cuts them off.
 
-An attacker who gets a copy of the server's database (perhaps through an SQL injection attack, the sort you read about every month or two) have to spend about a second of computer time for each guess, which [adds up](http://keywrapping.appspot.com/) when they must try a lot of them. The most serious kind of attack, where the bad guy gets full control of the server and can eavesdrop on login requests, yields an easier offline guessing attack (PBKDF) which could be made cheaper with specialized hardware.
+An attacker who gets a copy of the server's database (perhaps through an SQL injection attack, the sort you read about every month or two) have to spend about a second of computer time for each guess, which [adds up](http://keywrapping.appspot.com/) when they must try a lot of them. The most serious kind of attack, where the bad guy gets full control of the server and can eavesdrop on login requests, yields an easier offline guessing attack (PBKDF rather than scrypt) which could be made cheaper with specialized hardware.
 
 The security of old Sync didn't depend upon a password, because the pairing protocol it used meant there were no passwords.
 
