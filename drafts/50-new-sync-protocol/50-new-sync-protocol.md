@@ -2,25 +2,27 @@ Slug: 50-new-sync-protocol
 Date: 2014-03-25 18:05
 Title: The new Sync protocol
 
-(This wraps up a two-part series on recent changes in Firefox Sync, based on [my presentation](http://people.mozilla.org/~bwarner/warner-rwc2014/#/) at [RealWorldCrypto 2014](http://realworldcrypto.wordpress.com/). Part 1 was about problems we observed in the old system. Part 2 is about the system which replaces it.)
+(This wraps up a two-part series on recent changes in Firefox Sync, based on [my presentation](http://people.mozilla.org/~bwarner/warner-rwc2014/#/) at [RealWorldCrypto 2014](http://realworldcrypto.wordpress.com/). Part 1 was about problems we observed in the old Sync system. Part 2 is about the protocol which replaced it.)
 
-[Last time](../../blog/49-pairing-problems) I described the user difficulties we observed with the pairing-based Sync we shipped in Firefox 4.0. In late April, we released Firefox 29, with a new password-based Sync setup process. In this post, I want to describe a little bit about the protocol we use in the new system, and the security properties you can expect to get out of it.
+[Last time](../../blog/49-pairing-problems) I described the user difficulties we observed with the pairing-based Sync we shipped in Firefox 4.0. In late April, we released Firefox 29, with a new password-based Sync setup process. In this post, I want to describe the protocol we use in the new system, and their security properties.
 
 (For the cryptographic details, you can jump directly to the full [technical definition](https://github.com/mozilla/fxa-auth-server/wiki/onepw-protocol) of the protocol, which we've nicknamed "onepw", since there is now just "one password" to protect both account access and your encrypted data)
 
 ## New Requirements
 
-To recap the last post, the biggest frustration we saw with the old Sync setup process was that it didn't "work like other systems": users *thought* that their email and password would be sufficient to get their data back, but in fact it required access to a device that was already attached to your account. This made it unsuitable for people with a single device, and made it mostly impossible to recover from the all-too-common case of losing your only browser.
+To recap the last post, the biggest frustration we saw with the old Sync setup process was that it didn't "work like other systems": users *thought* that their email and password would be sufficient to get their data back, but in fact it required access to a device that was already attached to your account. This made it unsuitable for people with a single device, and made it mostly impossible to recover from the all-too-common case of losing your only browser. It also confused people who thought email+password was the way to set up a new browser.
 
-So the biggest new requirement for Sync was to make your data recoverable with just email+password.
+At about the same time, we were also building a new system called Firefox Accounts, aka "FxA", which will be used to manage access to Mozilla's new server-based features like the application marketplace and FirefoxOS-specific services.
 
-We've retained the requirement that Sync data is end-to-end encrypted, using a key that is only available to you and your personal devices.
+So our design constraints for the new Sync setup process were:
 
-And finally, we're rolling out a new system called Firefox Accounts, aka "FxA", which will be used to manage access to Mozilla's new server-based features like the application marketplace and FirefoxOS-specific services. The third requirement was to make Sync work well with the new Accounts.
+* must work well with Firefox Accounts
+* must sign in with traditional email and password: no pre-connected device necessary
+* all Sync data must be end-to-end encrypted, just like before, using a key that is only available to you and your personal devices.
 
 ## Enter Firefox Accounts: Login + Keys
 
-So we designed Firefox Accounts to both support the needs of basic login-only applications, *and* provide the secret keys necessary to safely encrypt your Sync data, while using traditional credentials (email+password) instead of pairing.
+To meet these constraints, we designed Firefox Accounts to both support the needs of basic login-only applications, *and* provide the secret keys necessary to safely encrypt your Sync data, while using traditional credentials (email+password) instead of pairing.
 
 The login portion uses BrowserID-like certificates, with a "principal" of your GUID-based FxA account identifier. These are used to create a "[Backed Identity Assertion](https://github.com/mozilla/id-specs/blob/prod/browserid/index.md#backed-identity-assertion)", which can be presented (as a bearer token) to a server to prove control over the account. The Sync servers require one of these assertions before granting read/write access to the encrypted data they manages.
 
@@ -100,9 +102,11 @@ The one case where you can't recover your old data is if you lose or break your 
 
 ### What If I'm Already Running Sync?
 
-If you've been using Sync for a while now, you probably set up Sync with the pairing scheme from Firefox 28 or earlier. Never fear! Your browsers will continue to sync with each other even after you upgrade some or all of them to FF29. New Sync and Old Sync use the same storage servers, and those aren't going away. Only the setup protocol has changed.
+If you've been using Sync for a while now, you probably set up Sync with the pairing scheme from Firefox 28 or earlier. Never fear! Your browsers will continue to sync with each other even after you upgrade some or all of them to FF29.
 
-If you're still running the FF24 ESR ([Extended Support Release](http://www.mozilla.org/en-US/firefox/organizations/faq/)) or another pre-FF29 browser, you'll still be able to use the pairing flow to connect additional old browsers. We'll support this flow until at least the end of the ESR maintenance period (14-Oct-2014), maybe a bit longer, but eventually we'll shut down the servers necessary to support the old pairing flow, and pairing will stop working.
+If you're still running FF24 ESR ([Extended Support Release](http://www.mozilla.org/en-US/firefox/organizations/faq/)) or another pre-FF29 browser, you can still use the pairing flow to connect additional old browsers. We'll support this flow until at least the end of the ESR maintenance period (14-Oct-2014), maybe a bit longer, but eventually we'll shut down the servers necessary to support the old pairing flow, and pairing will stop working. We hope to have a new pairing system in place by then: see below.
+
+Likewise, after most users have migrated to New Sync, and everyone has been notified to upgrade, the old-style Sync storage servers will eventually be shut down. But for now, Sync users don't need to make any changes.
 
 However, pairing-based Old Sync and password-based FxA-powered New Sync don't mix: if you used pairing to connect two FF28 browsers together, you won't be able to connect a third FF29 browser to them. You'll need to move everything to FxA to connect all three:
 
