@@ -124,3 +124,5 @@ The new Sync sign-up process is now live and adding tens of thousands of users e
 To set up Sync, just upgrade to Firefox 29, and follow the "Get started with Sync" prompts on the welcome screen or the Tools menu.
 
 Happy Syncing!
+
+(thanks to Karl Thiessen, Ryan Kelly, and Chris Karlof for invaluable feedback)
