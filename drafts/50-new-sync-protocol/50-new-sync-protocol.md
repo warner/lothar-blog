@@ -129,7 +129,7 @@ We are also looking for ways to re-introduce pairing as an optional feature, aft
 
 ## Conclusion
 
-The new Sync sign-up process is now live and adding thousands of users every day. The password-based process makes it possible to use Sync with just a single device: as long as you can remember the password, you can get back to your Sync data. It still encrypts your data end-to-end like before, but it's important to generate a good random password to protect your data completely.
+The new Sync sign-up process is now live and adding thousands of users every day. The password-based login makes it possible to use Sync with just a single device: as long as you can remember the password, you can get back to your Sync data. It still encrypts your data end-to-end like before, but it's important to generate a good random password to protect your data completely.
 
 To set up Sync, just upgrade to Firefox 29, and follow the "Get started with Sync" prompts on the welcome screen or the Tools menu.
 
