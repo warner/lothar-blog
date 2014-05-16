@@ -10,9 +10,9 @@ Title: The new Sync protocol
 
 ## Design Constraints
 
-To recap the last post, the biggest frustration we saw with the old Sync setup process was that it didn't "work like other systems": users *thought* that their email and password would be sufficient to get their data back, but in fact it required access to a device that was already attached to your account. This made it unsuitable for people with a single device, and made it mostly impossible to recover from the all-too-common case of losing your only browser. It also confused people who thought email+password was the way to set up a new browser.
+To recap the last post, the biggest frustration we saw with the old Sync setup process was that it didn't "work like other systems": users *thought* their email and password would be sufficient to get their data back, but in fact you need access to a device that was already attached to your account. This made it unsuitable for people with a single device, and made it mostly impossible to recover from the all-too-common case of losing your only browser. It also confused people who thought email+password was the standard way to set up a new browser.
 
-At about the same time, we were also building a new system called Firefox Accounts, aka "FxA", which will be used to manage access to Mozilla's new server-based features like the application marketplace and FirefoxOS-specific services.
+In addition, we've been building a new system called Firefox Accounts, aka "FxA", which will be used to manage access to Mozilla's new server-based features like the application marketplace and FirefoxOS-specific services.
 
 So our design constraints for the new Sync setup process were:
 
@@ -20,7 +20,7 @@ So our design constraints for the new Sync setup process were:
 * must sign in with traditional email and password: no pre-connected device necessary
 * all Sync data must be end-to-end encrypted, just like before, using a key that is only available to you and your personal devices
 
-## Enter Firefox Accounts: Login + Keys
+## Firefox Accounts: Login + Keys
 
 To meet these constraints, we designed Firefox Accounts to both support the needs of basic login-only applications, *and* provide the secret keys necessary to safely encrypt your Sync data, while using traditional credentials (email+password) instead of pairing.
 
@@ -48,17 +48,17 @@ This section describes how the new Firefox Accounts login protocol protects your
 
 Each account has two full-strength 256-bit encryption keys, named "kA" and "kB". These are used to protect two distinct categories of data: recoverable "class-A", and password-protected "class-B". Nothing uses class-A yet, so I'll put that off until a future article.
 
-Sync data falls into class B, and uses the "kB" key, which is protected by your account password. In technical terms, the FxA server holds a "wrapped copy" of kB, which requires your password to unwrap. Nobody knows your password but you and your browser, not even Mozilla's servers. Not even for a moment during login. The same is true for kB.
+Sync data falls into class B, and uses the kB key, which is protected by your account password. In technical terms, the FxA server holds a "wrapped copy" of kB, which requires your password to unwrap. Nobody knows your password but you and your browser, not even Mozilla's servers. Not even for a moment during login. The same is true for kB.
 
 To access any data encrypted under kB, you must remember your password. This means that anyone who **doesn't** know the password can't see your data.
  
 If you forget the password, you'll have to reset the account and create a new kB, which will erase both the old kB and the data it was protecting. This is a necessary consequence of properly protecting kB with the password: if there were any other way for **you** to recover the data without the password, then a bad guy could do the same thing.
 
-"kB" is a "root" key: each application (like Sync) will get a distinct derivative key for their own class-B data. That way each application gets its own encryption key, so they won't be able to decrypt data that was meant for a different application. Sync is the only application we have so far, but we may add more in the future.
+kB is a "root" key: it isn't used directly. Instead, we derive a distinct subkey for each application (like Sync) that wants to encrypt class-B data. That way, applications are prevented from decrypting data that wasn't meant for them. Sync is the only application we have so far, but we may add more in the future.
 
 ### Keeping your secrets safe
 
-To make sure your Sync data is really end-to-end encrypted, we must avoid ever letting the server figure out your password, otherwise it could learn kB and decrypt your data.
+To make sure your Sync data is really end-to-end encrypted, we must avoid ever letting the server figure out your password. Otherwise it could learn kB and decrypt your data.
 
 The first line of defense is that the server is never told your raw password: you must prove that you know the password, but that's not the same thing as revealing it. The client sends a hashed form of the password instead.
 
