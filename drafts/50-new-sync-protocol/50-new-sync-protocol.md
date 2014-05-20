@@ -58,11 +58,11 @@ kB is a "root" key: it isn't used directly. Instead, we derive a distinct subkey
 
 ### Keeping your secrets safe
 
-To make sure your Sync data is really end-to-end encrypted, we must avoid ever letting the server figure out your password. Otherwise it could learn kB and decrypt your data.
+To make sure your Sync data is really end-to-end encrypted, we must prevent anyone else from figuring out your password, otherwise they could learn kB and decrypt your data. "End-to-end" means we even have to exclude our own server from learning your password. The server is usually on your side, but we'd like to maintain security even if it gets compromised. A compromised server is the most powerful kind of attack we're going to tolerate. So if we can keep your password away from our server, we can keep it away from any attackers too.
 
-The first line of defense is that the server is never told your raw password: you must prove that you know the password, but that's not the same thing as revealing it. The client sends a hashed form of the password instead.
+We use multiple layers of security to protect your password. To start with, the server is never told your raw password: you must prove that you know the password, but that's not the same thing as revealing it. The client sends a hashed form of the password instead.
 
-The second line of defense is that the protocol uses "key-stretching" on the password before sending anything to the server, to make it hard for a compromised server to even attempt to guess your password. This stretching is pretty lightweight (1000 rounds of [PBKDF2-SHA256](https://tools.ietf.org/html/rfc2898#section-5.2)), but only needs to protect against the attacker who gets to see the stretched password in-flight (either because they compromised the server, or they've somehow broken TLS).
+This hashed form uses "key-stretching" on the password before sending anything to the server, to make it hard for a compromised server to even attempt to guess your password. This stretching is pretty lightweight (1000 rounds of [PBKDF2-SHA256](https://tools.ietf.org/html/rfc2898#section-5.2)), but only needs to protect against the attacker who gets to see the stretched password in-flight (either because they compromised the server, or they've somehow broken TLS).
 
 Finally, the data stored on the server is stretched even further, to make a static compromise of the server's database less useful to an attacker. This uses the "[scrypt](http://www.tarsnap.com/scrypt.html)" algorithm, with parameters of (N=64k, r=8, p=1). At these settings, scrypt takes 64MB of memory, and about 250ms of CPU time.
 
