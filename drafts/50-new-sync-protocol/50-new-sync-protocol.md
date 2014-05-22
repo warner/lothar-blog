@@ -44,6 +44,8 @@ Connecting a second device to your account is as simple as signing in with the s
 
 This section describes how the new Firefox Accounts login protocol protects your password, the Sync encryption key, and your data. For full documentation, take a look at the [key-wrapping protocol specs](https://github.com/mozilla/fxa-auth-server/wiki/onepw-protocol) and the [server implementation](https://github.com/mozilla/fxa-auth-server).
 
+This post only describes how the master "Sync Key" is managed. To learn about how the individual records are encrypted, take a look at the [storage format docs](http://docs.services.mozilla.com/sync/storageformat5.html).
+
 ### Encryption Keys
 
 Each account has two full-strength 256-bit encryption keys, named "kA" and "kB". These are used to protect two distinct categories of data: recoverable "class-A", and password-protected "class-B". Nothing uses class-A yet, so I'll put that off until a future article.
