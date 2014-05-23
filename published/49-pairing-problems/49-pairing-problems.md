@@ -1,6 +1,7 @@
 Slug: 49-pairing-problems
 Date: 2014-04-02 10:09
 Title: Pairing Problems
+Category: security
 
 (This begins a two-part series on upcoming changes in Firefox Sync, based on [my presentation](http://people.mozilla.org/~bwarner/warner-rwc2014/#/) at [RealWorldCrypto 2014](http://realworldcrypto.wordpress.com/). Part 1 is about problems we observed in the old system. Part 2 will be about the system which replaces it.)
 
