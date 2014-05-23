@@ -133,4 +133,4 @@ To set up Sync, just upgrade to Firefox 29, and follow the "Get started with Syn
 
 Happy Syncing!
 
-(thanks to Karl Thiessen, Ryan Kelly, Chris Karlof, and Daniel Kahn Gillmor for their invaluable feedback)
+(Thanks to Karl Thiessen, Ryan Kelly, Chris Karlof, and Daniel Kahn Gillmor for their invaluable feedback. [Cross-posted](http://blog.mozilla.org/warner/2014/05/23/the-new-sync-protocol/) to my [work blog](http://blog.mozilla.org/warner).)
