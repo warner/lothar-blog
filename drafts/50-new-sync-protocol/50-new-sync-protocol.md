@@ -1,5 +1,5 @@
 Slug: 50-new-sync-protocol
-Date: 2014-03-25 18:05
+Date: 2014-05-23 12:33
 Title: The new Sync protocol
 Category: security
 
