@@ -8,25 +8,25 @@ I decided to re-use the name because my latest project has been converging with 
 
 ## What (the heck is Petmail)?
 
-First off, Petmail is still just a testbed: you can't actually do anything with it yet. Even if it passes the unit tests on your computer, it will probably steal your dog and eat all your ice cream. Don't give it the chance. If you foolishly checked out the repo from https://github.com/warner/petmail.git , delete it before it grows. You've been warned.
+First off, Petmail is still just a testbed: you can't actually do anything with it yet. Even if it passes the unit tests on your computer, it will probably steal your dog and eat all your ice cream. Don't give it the chance. If you foolishly checked out the repo from https://github.com/warner/petmail.git , my best advice to you is to delete it before it grows. You've been warned.
 
-But, what Petmail aspires to be (some day) is a secure communication tool. "Communication", starting with moderate-latency mostly-text point-to-point queued message delivery (like email). I also intend to include low-latency conversations (like IM), and some form of group-based messaging.
+But, what Petmail aspires to be (some day) is a secure communication tool. "Communication", starting with moderate-latency mostly-text point-to-point queued message delivery (like email). I also intend to include low-latency conversations (like IM), and some form of group messaging.
 
-I also intend to include file sharing, in several modes. The simplest is share-with-future-self (aka "backup"). The next is share-with-other-self (aka Dropbox). Then there's share-with-other (the most common meaning of "file sharing" for most people). I might try to incorporate share-with-world ("publish") eventually.
+I also intend to include file sharing, in several modes. The simplest is share-with-future-self (aka "backup"). The next is share-with-other-self (aka Dropbox). Then there's share-with-other (what most people think of as "file sharing"). I might try to incorporate share-with-world ("publish") eventually.
 
-By "secure", I mean that at the very least, an eavesdropper does not get to learn the content of your conversations or the files you are storing/sharing. I also want forward-security, meaning that if your computer is captured tomorrow (along with all of its secrets), then the thief gets limited information about the content of your conversations from yesterday. Deleting a message from your UI should actually delete it from your computer, not merely hide it from view. This is surprisingly difficult.
+By "secure", I mean that at the very least, an eavesdropper does not get to learn the content of your conversations or of the files you are storing/sharing. I also want forward-security, meaning that if your computer is captured tomorrow (along with all of its secrets), then the thief gets limited information about the content of your conversations from yesterday. Deleting a message from your UI should actually delete it from your computer, not merely hide it from view. This is surprisingly difficult.
 
 I'm also interested in various forms of anonymity, pseudonymity, and relationship-hiding. These are expensive (i.e. increased protocol complexity, reduced performance, and more difficult deployment), so I haven't yet decided whether to include them or not. I'll be writing more about the tradeoffs involved in later blog posts.
 
 ## Why (am I doing this)?
 
-This latest effort started as a testbed (named "[toolbed](https://github.com/warner/toolbed)") where I could experiment with new UI and setup ideas for [Tahoe-LAFS](https://tahoe-lafs.org/), specifically invitation-code -based key-management, the database-backed node structure, and the secure all-web frontend.
+This latest effort started as a [testbed](https://github.com/warner/toolbed) where I could experiment with new UI and setup ideas for [Tahoe-LAFS](https://tahoe-lafs.org/), specifically invitation-code -based key-management, the database-backed node structure, and the secure all-web frontend.
 
 There are a lot of secure messaging tools being developed right now. I won't pretend that mine is any better. I'll admit to a certain about of Not-Invented-Here syndrome, where I prefer my own tool because of the language it's written in, the protocols/UX/architecture it uses, or simply because I get to make whatever changes I like. Or because it's easier for me to understand and trust my own code than to read and study someone else's.
 
-But I've found that the best way to explain the ideas in my head, to other people, is to implement them and show them the code. Especially when the ideas include the way that two people establish a connection. I think a lot of security tools, mine included, get stuck because they were unable to start with the end user's experience in mind. There's a lot to be said for asking people to pretend to perform some task (where we might expect security to matter), see what (possibly crazy) assumptions they make about it, and then search for ways to make those assumptions accurate.
+But I've found that the best way to explain the ideas in my head, to other people, is to implement them and show them the code. Especially when the ideas include the way that two people establish a connection. I think a lot of security tools, mine included, get stuck because they were unable to start with the end user's experience in mind. There's a lot to be said for asking people to pretend to perform some task (where we might expect security to matter), see what (possibly crazy) assumptions they make about it, and then search for ways to make those assumptions actually true.
 
-For example, when someone runs a local mail client like Thunderbird, and sees a message with a "From:" line that has a name they recognize, it's reasonable for them to assume that this message was actually written by that person. And if you know anything about SMTP, you know that's incredibly false. Likewise it's fair to expect writing a new message and typing a recipient's name into it, or choosing someone from the addressbook, will result in a message that's only actually visible to that one person. Both assumptions are reasonable, but not honored by existing systems. We probably need to change user's expectations, but if at all possible we should find a way to honor them, because that's (by definition) the most intuitive mental model they're likely to deduce and act upon.
+For example, when someone runs a local mail client like Thunderbird, and sees a message with a "From:" line that has a name they recognize, it's reasonable for them to assume that this message was actually written by that person. And if you know anything about SMTP, you know that's incredibly false. Likewise it's fair to expect that writing a new message and typing a recipient's name into it, or choosing someone from the addressbook, will result in a message that's only actually visible to that one person. Both assumptions are reasonable, but not honored by existing systems. We probably need to change user's expectations, but if at all possible we should find a way to meet them, because that's (by definition) the most intuitive mental model they're likely to construct and act upon.
 
 I think that improving the security of communication tools will require a couple of efforts, working together:
 
@@ -38,7 +38,7 @@ It needs to be somewhat interactive. If we mandate that users are allowed to do 
 
 ## How (does it work)?
 
-The basic idea is that you have an agent (long-running programs) working on your behalf, on your computer. You introduce your agent to those of your friends, either by having the agents talk directly to each other (scanning QR codes, NFC pairing, etc), or by mediating the connection through the humans (you and your friend exchange a short code displayed by your computer):
+The basic idea is that you have an agent (long-running program) working on your behalf, on your computer. You introduce your agent to those of your friends, either by having the agents talk directly to each other (scanning QR codes, NFC pairing, etc), or by mediating the connection through the humans (you and your friend exchange a short code displayed by your computer):
 
     agent1 <-> human1 <-> human2 <-> agent2
 
@@ -46,7 +46,7 @@ This latter approach also allows you to bootstrap the new Petmail connection fro
 
 The introduction process gives the agents shared keys they can use for communication later. It also tells them how to reach the other agent, to deliver messages (either for human consumption, or internal administrative traffic).
 
-People will actually have multiple agents, one per phone or computer. You introduce your agents to each other with the same tools as before, but with a note that tells the agents to trust each other more thoroughly. Your cluster of agents can then collude to make sure you see exactly one copy of each message, and that a correspondent you add from your phone is also available from your laptop.
+People will actually have multiple agents, one per phone or computer. You introduce your agents to each other with the same tools as before, but with a "meet your sibling" note that tells the agents to trust each other more thoroughly. Your cluster of agents can then collude to make sure you see exactly one copy of each message, and that a correspondent you add from your phone is also available from your laptop.
 
 My initial system uses a python-based daemon that runs on your computer, and you talk to it with a local web browser (the `petmail open` command instructs the agent to open a new browser tab with the UI). Eventually I'd like to port it to a browser extension, then maybe as a standalone [web app](https://developer.mozilla.org/en-US/Apps), because the [WebRT feature](https://developer.mozilla.org/en-US/Marketplace/Options/Open_web_apps_for_desktop) makes those easy to install directly to Windows/Mac/Linux/Android/FxOS like a native application. It might also be interesting to build a hosted form of Petmail, with the obvious security limitations that entails, as a stepping-stone to a local install.
 
