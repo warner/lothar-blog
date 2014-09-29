@@ -1,9 +1,9 @@
 Slug: 48-remote-entropy
 Date: 2014-03-04 10:29
-Title: remote entropy
+Title: Remote Entropy
 Category: security
 
-## Can you safely deliver entropy to a remote system?
+**Can you safely deliver entropy to a remote system?**
 
 
 Running a system without enough entropy is like tolerating a toothache:
