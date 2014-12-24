@@ -3,7 +3,7 @@ Date: 2014-05-23 12:33
 Title: The new Sync protocol
 Category: security
 
-(This wraps up a two-part series on recent changes in Firefox Sync, based on [my presentation](http://people.mozilla.org/~bwarner/warner-rwc2014/#/) at [RealWorldCrypto 2014](http://realworldcrypto.wordpress.com/). Part 1 was about problems we observed in the old Sync system. Part 2 is about the protocol which replaced it.)
+(This wraps up a two-part series on recent changes in Firefox Sync, based on [my presentation](http://www.lothar.com/presentations/fxa-rwc2014/) at [RealWorldCrypto 2014](http://realworldcrypto.wordpress.com/). Part 1 was about problems we observed in the old Sync system. Part 2 is about the protocol which replaced it.)
 
 !BEGIN-SUMMARY!
 [Last time](../../blog/49-pairing-problems) I described the user difficulties we observed with the pairing-based Sync we shipped in Firefox 4.0. In late April, we released Firefox 29, with a new password-based Sync setup process. In this post, I want to describe the protocol we use in the new system, and their security properties.

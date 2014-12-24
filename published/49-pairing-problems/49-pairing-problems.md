@@ -3,7 +3,7 @@ Date: 2014-04-02 10:09
 Title: Pairing Problems
 Category: security
 
-(This begins a two-part series on upcoming changes in Firefox Sync, based on [my presentation](http://people.mozilla.org/~bwarner/warner-rwc2014/#/) at [RealWorldCrypto 2014](http://realworldcrypto.wordpress.com/). Part 1 is about problems we observed in the old system. Part 2 will be about the system which replaces it.)
+(This begins a two-part series on upcoming changes in Firefox Sync, based on [my presentation](http://www.lothar.com/presentations/fxa-rwc2014/) at [RealWorldCrypto 2014](http://realworldcrypto.wordpress.com/). Part 1 is about problems we observed in the old system. Part 2 will be about the system which replaces it.)
 
 
 In March of 2011, [Sync](https://www.mozilla.org/en-US/firefox/sync/) made its debut in Firefox 4.0 (after spending a couple of years as the [Weave](https://blog.mozilla.org/labs/2007/12/introducing-weave/) add-on). Sync is the feature that lets you keep bookmarks, preferences, saved passwords, and other browser data synchronized between all your browsers and devices (home desktop, mobile phone, work computer, etc).
