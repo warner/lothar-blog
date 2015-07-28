@@ -1,6 +1,7 @@
 Slug: 53-petmail-delivery
 Date: 2015-07-25 16:38
 Title: Petmail mailbox-server delivery protocol
+Category: petmail
 
 [Petmail](https://github.com/warner/petmail) senders use a
 "[Mailbox server](https://github.com/warner/petmail/blob/48a712d8b0b6556dd608fbcb1d05178270ef3a8f/docs/mailbox.md)"
