@@ -11,7 +11,8 @@ def find_seqnums(rootdir):
                         yield int(mo.group(1))
                         break
                 else:
-                    raise RuntimeError("no :slug: in %s" % afn)
+                    #print >>sys.stderr, "no ':slug: NUM' in %s" % afn
+                    continue
             if fn.endswith(".md"):
                 for line in open(afn):
                     mo = re.search(r'^slug:\s+(\d+)-', line.lower())
@@ -19,7 +20,8 @@ def find_seqnums(rootdir):
                         yield int(mo.group(1))
                         break
                 else:
-                    raise RuntimeError("no slug: in %s" % afn)
+                    #print >>sys.stderr, "no 'slug: NUM' in %s" % afn
+                    continue
 
 seqnums = set()
 for dirname in sys.argv[1:]:
