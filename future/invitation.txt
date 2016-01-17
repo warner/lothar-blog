@@ -1,0 +1,42 @@
+
+public keys are public, but invitations are private
+
+each invitation uses a new keypair, created by the invitor
+
+goals:
+
+* Alice produces an Invitation, gives a secret "I" to Bob over a
+  not-really-secure channel. "I" should be short, maybe 128 bits.
+* a set of eavesdroppers "Eve" also see the invitation, but Bob claims it
+  first
+* Alice and Bob both have access to a server Sam, but not to each other. They
+  will rely upon Sam for connectivity, by leaving messages with Sam and
+  picking up messages from Sam.
+* They rely upon Sam to not delete or reorder messages, but Sam can insert
+  and read messages.
+
+Results:
+* At the end of the protocol, Bob will know Alice's public key, and Alice
+  will both know Bob's public key and associated it with the specific
+  invitation
+
+* How are messages sent? Main question: are we creating channels? or
+  connecting pubkeys?
+
+Simplest: Alice gives Bob her pubkey. Bob can then send her messages, but
+this fails because Alice can't then find out which message is from Bob (vs
+someone else).
+
+Next: Alice 
+
+Invitation gets a keypair, is used just until the invitation is claimed.
+
+
+Afterwards:
+* when Alice sends a message to Bob, she generates the shared key, creates a
+  nonce, hashes the shared key and the nonce to get a per-message key, then
+  encrypt+MAC the message with that, then post it to the server indexed by
+  the pubkey
+
+# how does the server reclaim the space? Bob needs to be able to tell the
+# server to drop the message
