@@ -35,7 +35,7 @@ An active attacker only gets one guess (or maybe two, depending upon how you cou
 
 If their guess was wrong, the session keys are independent and unrelated, and they won't be able to talk with Alice (or Bob) at all. For each time that Alice or Bob is willing to run the protocol, they get another guess.
 
-(incidentally, both sides usually include some sort of identity string in their transcript hashes, so an attacker can't splice together unrelated sessions: Alice runs this protocol with a specific intent to construct a session key for server "foo.com", and can't be confused by a response that was replayed from an earlier session with "bar.com")
+(incidentally, both sides usually include some sort of identity string in their transcript hashes, so an attacker can't splice together unrelated sessions: Alice runs this protocol with a specific intent to construct a session key for server "foo.com", and can't be confused by a response that was replayed from an earlier session with "bar.com". `K1 = hash(idA,idB,X,Y,Z1,pw1)`)
 
 ## Where do M and N come from?
 
@@ -45,7 +45,7 @@ If you don't realize this, and you're struggling to figure out how groups work a
 
 The traditional way to prove that nobody knows the scalar is to hash some simple string (with limited wiggle room) and somehow convert the hashed output into an element. Popular strings include pi, e, sin/cos functions, and the names of the parameters themselves. The nominal argument is that you'd have to tamper with the fundamental constants of the universe to have enough control over the output to steer it towards an element for which you already knew the discrete log.
 
-It turns out to be much easier to choose an arbitrary element in an integer group, like `Zp*`: you treat the hash output as a random member of 0..p-1, then just raise it to `q` (the order of the subgroup). The result will be in the right group and will be just as uniformly distributed as the hash output itself. There's an example [here](https://github.com/warner/python-spake2/blob/v0.3/spake2/groups.py#L132).
+It turns out to be much easier to choose an arbitrary element in an integer group, like `Zp*`: you treat the hash output as a random member of 0..p-1, then just raise it to `(p-1)/q` (the "cofactor": `q` is the order of the subgroup). The result will be in the right group and will be just as uniformly distributed as the hash output itself. There's an example [here](https://github.com/warner/python-spake2/blob/v0.3/spake2/groups.py#L132).
 
 For elliptic curves, you must turn the hash output into an x (or y) coordinate, recover the other coordinate (giving you a point on the right curve, but not necessarily in the right group), then either check the group order or just multiply (known as "clearing the cofactor"). [Here](https://github.com/warner/python-spake2/blob/v0.3/spake2/ed25519_basic.py#L269) is the function which does this in my [python-spake2](https://github.com/warner/python-spake2) implementation.
 
@@ -53,15 +53,17 @@ For elliptic curves, you must turn the hash output into an x (or y) coordinate, 
 
 A thing that puzzled me up until now was why, exactly, it was so important that nobody knows the discrete logs for these constants. I knew there was some sort of attack possible, but I couldn't figure out the details. Mike Hamburg pointed me in the right direction in [his discussion](https://moderncrypto.org/mail-archive/curves/2015/000424.html) of "SPAKE2 - Elligator Edition" on the moderncrypto.org [curves mailing list](https://moderncrypto.org/mailman/listinfo/curves). But I didn't work out the attack until just recently.
 
-Here's the deal: an active attacker (pretending to be Bob) who gets some sort of offline oracle access to the final session key will be able to mount an offline dictionary attack against the password that Alice used. "Oracle access" means they get to observe some use of that key: maybe Alice immediately sends a key-confirmation message (a simple hash of the key) so Bob can tell whether the PAKE succeeded or not (the oracle is then just hashing the potential key and seeing if it matches the confirmation message). Or Alice uses the key for authenticated encryption, and sends a ciphertext where the attacker can see it (so trial decryption of that message provides the oracle). Because the oracle is **offline**, the attacker can test guesses of `K1` as frequently as they like, without additional interaction with Alice.
+Here's the deal: if Mallory (our active attacker) can pretend to be Bob for the duration of the protocol, then later she can mount an offline dictionary attack against the password that Alice used. In particular, Mallory can construct a function that converts a potential password into a potential session key, and this function can be run without further interaction with Alice and Bob. As long as she has some way to check whether a potential session key is correct or not, she can feed a list of common passwords into the function and quickly identify which one (if any) was correct. This violates PAKE's promise of  security: an active attacker is supposed to be limited to just one guess.
 
-Suppose that the attacker knows that `N = B*n` (`n` being the discrete log of the no-longer-arbitrary point `N`).
+Mallory almost certainly has a way to observe *some* use of the session key, which will give her a way to test her guesses. Maybe Alice immediately sends a key-confirmation message (a simple hash of the key) so Bob can tell whether the PAKE succeeded or not: then Mallory just hashes the potential key and sees if it matches the confirmation message. Or if Alice uses the key for authenticated encryption, and Mallory gets to see the ciphertext, then trial decryption of that message lets her test each guess. Because this test is **offline**, the attacker can test guesses of `K1` as frequently as she likes.
+
+The math looks like this. Suppose that the attacker knows that `N = B*n` (`n` being the discrete log of the no-longer-arbitrary point `N`).
 
 Now, when our attacker Mallory pretends to be Bob, she picks a random `y` and sends `Y = B*y`, omitting the password and blinding factor `N` entirely. Mallory receives `X = B*x + M*pw1` from Alice. Note that `B*x = X - M*pw1`.
 
 Alice will then compute `Z1 = (Y-N*pw1)*x`, which is really `(Y-B*n*pw1)*x`, which is really `(B*y-B*n*pw1)*x`, which (since scalar multiplication is associative) is really `(y-n*pw1)*B*x`, which means `Z1=(y-n*pw1)*(X-M*pw1)`.
 
-Note that every term in that final equation is known to Mallory except the password `pw1`: she picked `y` herself, `n` is the discrete log of `N`, and `X` was given to her by Alice. Mallory has all the time in the world to try various values of `pw1`, compute a potential `Z1`, and test the resulting session key `K1` against the oracle.
+Note that every term in that final equation is known to Mallory except the password `pw1`: she picked `y` herself, `n` is the discrete log of `N`, and `X` was given to her by Alice. Mallory has all the time in the world to try various values of `pw1`, compute a potential `Z1`, and test the resulting session key `K1` until she finds the right password.
 
 This only works if Mallory can factor out the `B*something` in Alice's `Z1` computation, which is why she needs the discrete log of `N` to pull it off.
 
