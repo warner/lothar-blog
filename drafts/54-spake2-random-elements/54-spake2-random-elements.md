@@ -1,7 +1,7 @@
 Slug: 54-spake2-random-elements
-Date: 2016-01-16 15:58
+Date: 2016-01-19 13:10
 Title: SPAKE2 "random" elements
-Category: security
+Category: cryptography
 
 !BEGIN-SUMMARY!
 SPAKE2 requires two special "arbitrary" constants M and N. What
@@ -115,7 +115,7 @@ the group order or just multiply (known as "clearing the cofactor").
 is the function which does this in my
 [python-spake2](https://github.com/warner/python-spake2) implementation.
 
-## Why must M be random?
+## Why must M and N be random?
 
 A thing that puzzled me up until now was why, exactly, it was so
 important that nobody knows the discrete logs for these constants. I
