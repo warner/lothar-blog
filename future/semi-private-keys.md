@@ -96,7 +96,9 @@ Onion Service publisher -> client -> DHT storage node
 * daily verifying key = DHT index = `Y+H(day+Y)*B`
 * daily encryption key = `H2(day+Y)`
 
-The .onion address is just an encoded form of the long-term base public
+In the partially-implemented (and not-yet-deployed)
+["next-generation hidden services"](https://gitweb.torproject.org/torspec.git/tree/proposals/224-rend-spec-ng.txt), the
+.onion address is just an encoded form of the long-term base public
 verifying key (which is never actually used to verify anything). Each
 day, the service host computes a new daily keypair, by adding a
 deterministically-generated random number to their base private
