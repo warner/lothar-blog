@@ -129,6 +129,9 @@ the requests for that descriptor. It might also be able to mount an
 attack by corrupting the responses and watching for clients to
 re-request the descriptor from other nodes.
 
+There is a proof of soundness for this scheme:
+https://www-users.cs.umn.edu/~hopper/basic-proof.pdf
+
 ## Bitcoin
 
 Base private key -> POS terminal -> sender
