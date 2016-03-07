@@ -1,6 +1,9 @@
 Slug: build-transparency
 Date: 2016-01-22 14:54
 Title: Build Transparency
+JavaScripts: https://cdnjs.cloudflare.com/ajax/libs/vis/4.15.0/vis.min.js
+Stylesheets: https://cdnjs.cloudflare.com/ajax/libs/vis/4.15.0/vis.min.css
+
 
 !BEGIN-SUMMARY!
 [Certificate Transparency](http://www.certificate-transparency.org/)
@@ -10,6 +13,22 @@ achieve something similar for installable software packages.
 !END-SUMMARY!
 
 ## Sources, Artifacts, and Links
+
+<div id="diagram" style="border: 1px solid #88f; font-size: 40px"></div>
+<script>
+  // create a network
+  var container = document.getElementById('diagram');
+  var dot = 'dinetwork {node [shape=box shadow=true];     \
+      edge [length=200]; \
+      source [label="type: treehash\nvalue: 0123cedf" x=0 y=0];        \
+      output [label="type: treehash\nvalue: 4567abcd" x=10 y=0];  \
+      source -> output [label="foo"]; \
+      }';
+  var data = vis.network.convertDot(dot);
+  //console.log(data);
+  var options = {};
+  var network = new vis.Network(container, data, options);
+</script>
 
 Start with a directed graph of source trees and build artifacts:
 
