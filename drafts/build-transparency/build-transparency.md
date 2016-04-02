@@ -1,8 +1,6 @@
 Slug: build-transparency
 Date: 2016-01-22 14:54
 Title: Build Transparency
-JavaScripts: https://cdnjs.cloudflare.com/ajax/libs/vis/4.15.0/vis.min.js
-Stylesheets: https://cdnjs.cloudflare.com/ajax/libs/vis/4.15.0/vis.min.css
 
 
 !BEGIN-SUMMARY!
@@ -12,23 +10,92 @@ publish logs of reproducible (and non-reproducible) build steps, we can
 achieve something similar for installable software packages.
 !END-SUMMARY!
 
-## Sources, Artifacts, and Links
+## The Problem: You Want Me To Run *What*?
 
-<div id="diagram" style="border: 1px solid #88f; font-size: 40px"></div>
-<script>
-  // create a network
-  var container = document.getElementById('diagram');
-  var dot = 'dinetwork {node [shape=box shadow=true];     \
-      edge [length=200]; \
-      source [label="type: treehash\nvalue: 0123cedf" x=0 y=0];        \
-      output [label="type: treehash\nvalue: 4567abcd" x=10 y=0];  \
-      source -> output [label="foo"]; \
-      }';
-  var data = vis.network.convertDot(dot);
-  //console.log(data);
-  var options = {};
-  var network = new vis.Network(container, data, options);
-</script>
+As a whole, our industry is really bad at writing software securely.
+It's understandable: the problem is huge. The editor I'm using for this
+post has 250 thousand lines of C code, plus a million lines of LISP.
+This runs on a windowing system that's probably just as big, and both
+live on top of a kernel that could be even bigger. Experience shows that
+probably 1% of those lines are faulty somehow, and any one of them could
+be broken in a way that compromises security. That's tens of thousands
+of bugs, just waiting for someone to find them, good or bad.
+
+Simply installing the ["sloccount"](http://www.dwheeler.com/sloccount/)
+tool (to count those lines) exposes me to a slew of vulnerabilities.
+There might be something
+[malicious](https://community.rapid7.com/community/infosec/blog/2015/12/20/cve-2015-7755-juniper-screenos-authentication-backdoor)
+(or
+[exploitable](https://www.imperialviolet.org/2014/02/22/applebug.html))
+in the author's source code, misbehavior introduced by a
+[malware-infected compiler](http://researchcenter.paloaltonetworks.com/2015/09/novel-malware-xcodeghost-modifies-xcode-infects-apple-ios-apps-and-hits-app-store/),
+or
+[something](http://arstechnica.com/information-technology/2015/05/sourceforge-grabs-gimp-for-windows-account-wraps-installer-in-bundle-pushing-adware/)
+added to the compiled binary by whoever hosts the package I downloaded.
+
+And since our applications run with full power over our local user
+accounts (no isolation, sandboxing, or least-privilege), even a tiny bug
+can result in complete system compromise.
+
+We know about a few techniques that can help. I'm a big fan of
+[object-capability security](http://erights.org/), but we don't yet have
+the tooling or the languages to really take advantage of it on normal
+operating systems. Sandboxing (the coarser big-sibling to objcap) is
+showing good results in places like Qubes, Chromium, iOS, and some forms
+of OS-X.
+
+But the main tool we use is reactive: bug reports from users, which feed
+back into fixes that go into new releases. Bad guys use the the most
+exciting bugs to attack systems: we keep our ears open for reports of
+these attacks, then we race to fix and distribute and install patches
+before the attackers get around to targeting our system. All modern
+operating systems (and many individual applications) include an
+auto-update mechanism, to reduce the window of time between revealing a
+flaw and deploying the fix.
+
+## Why should I run that?
+
+These auto-update mechanisms (at least the respectable ones) either sign
+the updates or deliver them over TLS. It would be unfortunate if an
+attacker could
+[pretend to be the auto-update server](https://vulnsec.com/2016/osx-apps-vulnerabilities/)
+and install a pre-compromised version. The details vary, but in the end
+you're giving control over your computer to somebody who holds a
+particular private key. More like one of a few hundred private keys,
+since there's so much software on your computer.
+
+And those applications were built on computers which are just as porous
+and vulnerable as your own, and they include dozens of libraries, from
+yet more computers. The enormous attack surface is, quite frankly,
+intimidating. Some days I wonder how it is that computers work at all.
+(I suspect the reason is that writing successful attacks is just as
+frustrating as writing functional software, and less rewarding for most
+of the people who can do it).
+
+But, as a baseline, let's assume that you'll only run software that I've
+signed. 
+
+## What exactly am I running, anyways?
+
+So If we can't make much headway on making software *better*, let's
+focus on at least making it more *repeatable*. That way, maybe I can at
+least be confident that I've got the *same bugs* as you do.
+
+This can isolate the source of problems down to the source code, or some
+specific part of the toolchain. And it can also block sneaky targetted
+attacks. Say I've got some clever malware that I want to plant on your
+machine, but I don't want to get caught. I could infiltrate the author's
+computer and modify the code before they compile and sign it, but then
+everybody will see the same attack code, and you might hear about it in
+the papers before you ever run that update. So I want to deliver this
+code to you and you alone, which means arranging for you to see a
+different update than everyone else.
+
+## That Looks Dangerous: You Go First
+
+By only running code that other people have run first, you a
+
+## Sources, Artifacts, and Links
 
 Start with a directed graph of source trees and build artifacts:
 
