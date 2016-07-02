@@ -141,3 +141,20 @@ BIP32
 ## Dual EC
 ## Ed25519 key ratchet?
 
+# Actually Implementing Semi-Private Keys
+
+Our paper only sketched out the abstract idea for DSA-ish signatures.
+Tony Arcieri drew up a plan for implementing semi-private keys using the
+Ed25519 signature algorithm, which requires some changes to the way
+Ed25519 derives the internal nonce-generating values. He's got some
+great diagrams and SAGE code at https://gist.github.com/tarcieri/4760215
+.
+
+To derive the keys, this implementation requires access Ed25519 clamping
+function (which must be used twice), the internal scalar multiply
+function (used twice for key generation, rather than once), and a
+scalar*scalar multiplication (modulo the group order, which is normally
+only used while making signatures). All these pieces are available to
+the internals of an Ed25519 library, however they aren't usually exposed
+to callers. So implementing this will require some modifications to
+existing code.
