@@ -10,7 +10,7 @@ related goals.
 ## Semi-Private Keys in general
 
 Standard signing/verifying systems produce two classes of keys, where
-you can derive the "weaker" key from the stronger" one, but not the
+you can derive the "weaker" key from the "stronger" one, but not the
 other way around:
 
 * 1: private signing key
@@ -135,6 +135,8 @@ https://www-users.cs.umn.edu/~hopper/basic-proof.pdf
 ## Bitcoin
 
 Base private key -> POS terminal -> sender
+
+BIP32
 
 ## Dual EC
 ## Ed25519 key ratchet?
