@@ -1,6 +1,7 @@
 Slug: Git-over-Tahoe-LAFS
-Date: 2017-02-02 16:24
+Date: 2017-02-07 01:17
 Title: Git over Tahoe-LAFS
+Category: tahoe
 
 !BEGIN-SUMMARY!
 Tahoe-LAFS provides reliability, integrity, and confidentiality, so you
