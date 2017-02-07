@@ -1,4 +1,4 @@
-Slug: Git-over-Tahoe-LAFS
+Slug: 55-Git-over-Tahoe-LAFS
 Date: 2017-02-07 01:17
 Title: Git over Tahoe-LAFS
 Category: tahoe
