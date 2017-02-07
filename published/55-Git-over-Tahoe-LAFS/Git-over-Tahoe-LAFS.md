@@ -558,7 +558,11 @@ rounds of redundantly-encrypted identical plaintexts to bounce around
 before things settle down. While the backend is a git repository, it
 does not use history in the normal Git way (there is only one commit,
 which is replaced wholesale on each push), so the ciphertext cannot be
-replicated with a plain "git pull".
+replicated with a plain "git pull" (you can create a mirror with "git
+clone", but subsequent pulls cannot be merged because there's no common
+history, so you'd need something like "git fetch && git update-ref
+master FETCH_HEAD" to make updates, and the git-fetch might not be able
+to efficiently select a minimal set of objects to deliver).
 
 Adding a new client with git-remote-gcrypt requires the new client be
 given write access to the git repo, and ensuring data is encrypted to
