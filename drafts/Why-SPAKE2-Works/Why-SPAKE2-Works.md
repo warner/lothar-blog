@@ -155,14 +155,19 @@ given two elements X and Y, and being told that ``Y = nX`` for some
 discrete-log problem again, except to base ``X`` instead of base ``G``).
 
 To visualize this, I imagine adding a second ring of rocks around the
-first, perhaps labelled "Multiply by 3". Each element (rock) in the
-outer ring is obtained by doing ``scalarmut(3, X)`` with the element in
+first, perhaps labelled "Multiply by 2". Each element (rock) in the
+outer ring is obtained by doing ``scalarmut(2, X)`` with the element in
 the inner ring. This is a permutation: every kind of rock will appear
 exactly once in each ring. If we could peek inside the rocks and see
 their secret scalars, we'd notice that the scalars in the outer ring
-were always equal to 3 times the scalars in the rocks in the inner ring
-(well, ``3*x%P``). But since we can't break open the rocks to see those
+were always equal to 2 times the scalars in the rocks in the inner ring
+(well, ``2*x%P``). But since we can't break open the rocks to see those
 scalars, all we see is a permutation.
+
+Now add another ring, for "multiply by 3". And more rings, for each
+scalar up to P.
+
+torus?
 
 We can define "subtraction" to work like we're used to. Since scalars
 are all modulo P, we can define ``-X`` as being ``scalarmult(P-1, X)``,
