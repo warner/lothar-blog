@@ -112,8 +112,8 @@ itself). The same arguments for identities apply here, but I prefer to
 make applications explicitly deal with the exciting possibilities that
 unicode passwords offer you. In addition, it's entirely valid to have
 the password be the output of some other hash function (maybe you
-stretch it with Argon2 first), in which case requiring a unicode string
-would be messy.
+stretch it with [Argon2](https://www.argon2.com/) first), in which case
+requiring a unicode string would be messy.
 
 Internally, the password must be converted into a scalar of the chosen
 group. This will be an integer from 0 to the group order (the order will
@@ -167,9 +167,10 @@ arbitrary-length passwords. 256 bits is more entropy than any
 conceivable password, so using ``convert_password_to_scalar()`` from
 above should be plenty.
 
-* What python-spake2 does: HKDF(password, info="SPAKE2 pw", salt="",
-  hash=SHA256), expand to 32+16 bytes, treat as big-endian integer,
-  modulo down to the Ed25519 group order (2^252+stuff)
+* [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/groups.py#L70):
+  HKDF(password, info="SPAKE2 pw", salt="", hash=SHA256), expand to
+  32+16 bytes, treat as big-endian integer, modulo down to the Ed25519
+  group order (2^252+stuff)
 
 ### The Group
 
@@ -202,17 +203,18 @@ safely, go run python-spake2". But it'd be nice to be more transparent,
 which may require porting the specific seed-to-arbitrary-element
 algorithm into the new language too.
 
-* What python-spake2 does: HKDF(seed, info="SPAKE2 arbitrary element",
-  salt=""), expand to 32+16 bytes, treat as big-endian integer, modulo
-  down to field order (2^255-19), treat as a Y coordinate, recover X
-  coordinate, always use the "positive" X value, reject if (X,Y) is not
-  on curve, multiply by cofactor to get candidate point, reject
-  candidate is zero (i.e. we started with one of the 8 low-order
-  points), reject if candidate times cofactor is zero (i.e. candidate
-  was not in the right subgroup), return candidate. If the candidate is
-  rejected, increment the Y coordinate by 1, wrap to field order, try
-  again. Repeat until success. We expect this to loop 2*8=16 times on
-  average before yielding a valid point.
+* [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/ed25519_basic.py#L271):
+  HKDF(seed, info="SPAKE2 arbitrary element", salt=""), expand to 32+16
+  bytes, treat as big-endian integer, modulo down to field order
+  (2^255-19), treat as a Y coordinate, recover X coordinate, always use
+  the "positive" X value, reject if (X,Y) is not on curve, multiply by
+  cofactor to get candidate point, reject candidate is zero (i.e. we
+  started with one of the 8 low-order points), reject if candidate times
+  cofactor is zero (i.e. candidate was not in the right subgroup),
+  return candidate. If the candidate is rejected, increment the Y
+  coordinate by 1, wrap to field order, try again. Repeat until success.
+  We expect this to loop 2*8=16 times on average before yielding a valid
+  point.
 
 ### Element Representation and Parsing
 
@@ -250,8 +252,9 @@ the "cofactor"), and can take as much time as the main SPAKE2 math
 itself (so potentially doubling the total CPU cost). However both are
 important to do, and worth the slowdown.
 
-* What python-spake2 does: encode points like Ed25519 does, reject
-  not-on-curve and not-in-correct-subgroup points during parsing.
+* [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/ed25519_basic.py#L342):
+  encode points like Ed25519 does, reject not-on-curve and
+  not-in-correct-subgroup points during parsing.
 
 ### Transcript Generation
 
@@ -302,7 +305,8 @@ def safe_cat(a, b):
     return struct.pack(">LsLs", len(a), a, len(b), b)
 ```
 
-* What python-spake2 does: transcript =
+* [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/spake2.py#L45):
+  transcript =
   sha256(password)+sha256(idA)+sha256(idB)+msg_A+msg_B+shared_element.to_bytes()
 
 ### Hashing the Transcript
@@ -320,7 +324,8 @@ doesn't seem likely, but a given library might choose to use a
 personalization string that captures the other implementation-specific
 choices that it makes.
 
-* What python-spake2 does: key = sha256(transcript)
+* [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/spake2.py#L45):
+  key = sha256(transcript)
 
 ## Testing Interoperability
 
@@ -351,9 +356,7 @@ you find the first one that doesn't match.
 
 ### TODO (blog draft)
 
-* add Argon2 link
 * do we need to minimize bias in the password-to-scalar function?
 * remove discussion about uniform password-to-scalar hashing?
-* "M+N": link to the python-spake2 code that generates them
 * Element Representation: link "some debate about the issue" to the
   curves-list discussion
