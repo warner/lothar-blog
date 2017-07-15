@@ -133,7 +133,8 @@ message received by the peer, and emits the shared key (as a
 fixed-length bytestring). The length of the shared key is up to the
 library author, but it's typically 256 or 512 bits (since it's the
 output of the transcript hash). Applications that need more key material
-should derive it from the shared key with HKDF, outside the scope of the
+should derive it from the shared key with
+[HKDF](https://tools.ietf.org/html/rfc5869), outside the scope of the
 SPAKE2 library.
 
 (You run both halves of the API on both sides. Each side will generate
@@ -408,12 +409,55 @@ X coordinate), but you must make sure that the point is correct too: it
 must be on the correct curve (not the twist), and it must be in the
 correct subgroup.
 
-Nominally, this only ever needs to be done once. I could copy the M and
-N values from python-spake2 into spake2.rs (as a big hex string) and
-include a note that says "if you want proof that these were generated
-safely, go run python-spake2". But it'd be nice to be more transparent,
-which may require porting the specific seed-to-arbitrary-element
-algorithm into the new language too.
+Why hash a string? We definitely want different values for M and N, we
+kind of want different values for different curves, and it would be cool
+to reduce our ability to fiddle with the results too much: the elements
+we pick should somehow be the most "obvious" choice. Another name for
+this property is the "nothing up my sleeve" number. djb's
+[bada55](https://bada55.cr.yp.to/) site (and the delightfully amusing
+[paper](https://bada55.cr.yp.to/bada55-20150927.pdf)) touch on this.
+Pretend that we're trying to build a sabotaged standard, defined to use
+an element for which we (and we alone) know a discrete log. Maybe we
+have some magic way to learn the discrete log of, say, one in every
+million elements. And say that instead of a seed, we're just using an
+integer. Now we could just keep trying sequential integers until we get
+an element that we can DLOG, and then we write this not-huge integer
+into our standard, and tell folks something like "oh, 31337 was my first
+phone number, so that was the most obvious choice", muahaha.
+
+Using a short seed, named something obvious like "M", gives us a warm
+fuzzy feeling that there's not much wiggle room to perform this
+hypothetical search for a bad element. It's not perfect, though, since
+we can probably just wiggle the other aspects (which hash to use, which
+other fields to include in the hash, the order to arrange them, etc). So
+hash-small-seed is nominally a good idea, but the real safety comes from
+the choice of group and the hardness of the DLOG assumption.
+
+Using a string seed that includes the curve name means we'll definitely
+get different (and quite unrelated) values for different curves, but to
+be honest using different curves pretty much gives you that anyways, and
+it's not clear how similar-looking elements in unrelated curves could be
+used as an attack anyways. The general concern is that you might use the
+same password on two different instances of the protocol (one with each
+curve), and then an attacker can somehow exploit confusion about which
+messages go with which curve.
+
+So that's how get a "safe" element. Nominally, this only ever needs to
+be done once: in theory, I could publish the program that turns a seed
+of "M" into 0x19581b8f3.. in a blog post, and then just copy the big hex
+values into python-spake2, and include a note that says "if you want
+proof that these were generated safely, go run the program from my blog.
+And if you actually went and downloaded that code and ran it and
+compared the strings, then you'd get the same level of safety. But
+nobody will actually do that, so we can inspire more confidence by
+adding the seed-to-element code into the library itself, and starting
+from a seed instead of a big hex string.
+
+Since we need all implementations to use the same M/N elements, this
+means we may need to port the specific seed-to-arbitrary-element routine
+from the original language (where maybe it was a pretty natural
+algorithm) into each target language (where it may seem
+overcomplicated).
 
 * [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/ed25519_basic.py#L271):
   HKDF(seed, info="SPAKE2 arbitrary element", salt=""), with seed equal
@@ -444,9 +488,13 @@ algorithm into the new language too.
 
 Element representation is the most obvious compatibility-impacting
 decision to make, as the algorithm provides a group element (e.g. a
-point) for the first message, but our library API returns a bytestring.
-So clearly we need to define how we turn group elements into bytes, and
-back again.
+point) for the first message, but our library API returns a bytestring
+(since we need to send bytes over the wire). So clearly we need to
+define how we turn group elements into bytes, and back again.
+
+(while you could define the API to return an abstract element, and push
+the serialization job onto the application, that sounds unlikely to ever
+work)
 
 The X.509 certificate world has a fairly well-established process for
 doing this, called BER or DER, and it includes things like multiple
@@ -490,14 +538,16 @@ to disk), and that's not the case for us.
 Finally, SPAKE2 is (usually) "sided": there are two roles to play, and
 both participants must somehow choose (different) sides before they
 start. A really common application mistake is to use the same side on
-both ends: "Hello Alice? This is Alice.". When this happens, the keys
-won't match, and the result will be indistinguishable from a password
-mismatch, which will take forever to debug.
+both ends: "Hello Alice?
+[This is Alice](http://www.imdb.com/title/tt1373156/).". When this
+happens, the keys won't match, and the result will be indistinguishable
+from a password mismatch, which will take forever to debug.
 
 To help programmers discover this error earlier, the library might want
 to add a "side identifier" to the message. If the second API function is
 given a message from the same side as it was told to be in the first
-function, it can throw an exception.
+function, it can throw an exception which instructs the programmer to
+assign different sides.
 
 * [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/ed25519_basic.py#L342):
   encode points like Ed25519 does, reject not-on-curve and
@@ -509,22 +559,52 @@ function, it can throw an exception.
 
 ### Transcript Generation
 
-The penultimate step of SPAKE2 is to assemble everything we've sent and
-received and computed into a sequence of bytes:
+Now that each side has sent their element, and received the other side's
+element, the SPAKE2 math gets us a secret shared element. However this
+isn't a key yet. The remainder of the protocol is responsible for
+leveraging this secret element and producing a proper shared key.
+
+The secrecy of the shared key comes entirely from the secrecy of the
+shared element (the original password is also involved, to make the
+proof stronger, but doesn't add any meaningful security). However using
+it alone would open us up to several mix-and-match attacks, where the
+adversary redirects and reorders messages to confuse e.g. an Alice+Bob
+session with an Alice+Carol session. In addition, the shared element
+isn't a uniformly random key: for starters it isn't even a bytestring.
+And serializing a random element doesn't get you a random bytestring:
+there are usually distinctive patterns, like the high bit is always set,
+or the low bits are always clear.
+
+Modern protocols handle both these problems by building a "conversation
+transcript", which contains every message that was exchanged (as well as
+the "inner voice" intentions and computed secrets), and finally hashing
+the whole thing. The hash function hides any structure from the secret
+element, and the inclusion of the other messages prevents the
+mix-and-match attacks.
+
+The SPAKE2 transcript needs to include all of the following (as bytes):
 
 * the password
 * the "identity strings" for both sides
 * the messages that were exchanged
 * the shared derived group element
 
-The secrecy of the shared key comes entirely from that last element
-(there are variations that don't include the password, but the proof is
-stronger when it is included). However many early protocols, which did
-not include the other values, were vulnerable to mix-and-match attacks
-that combined portions of multiple conversations. Modern protocols
-prevent this by building a "conversation transcript", which contains
-every message that was exchanged (as well as the "inner voice" secrets
-that are computed), and finally hashing the whole thing.
+The password could be hashed in its original form (as a bytestring), or
+as a scalar (which must then be serialized into a bytestring). We need
+the scalar form in both the first and the second functions, so you have
+a couple of choices of CPU and space usage (noting that both are
+trivial):
+
+* store only the bytestring in the state vector, and re-convert to a
+  scalar in the second function, and then hash either
+* store only the scalar in the state vector, and hash the scalar
+* store both in the state, and hash either
+
+The messages could include the "side" marker, or not. Since the messages
+need to be bytestrings for transmission anyways, it makes sense to use
+these same encoded forms for the transcript too. The final shared
+element should be encoded in the same way as the messages were, although
+of course this encoded secret element is never sent over a wire.
 
 The concatenation scheme must resist "format confusion" attacks: where
 the combination of (A1, B1) results in the same bytes as a combination
@@ -545,9 +625,9 @@ def unsafe_cat2(a, b): return a+":"+b
 assert unsafe_cat("you:lo", "se") != unsafe_cat("you", "lo:se")
 ```
 
-Escaping the delimiter can work, but is touchy. The safe way to do this
-is to either prefix all variable-length strings with a fixed-size length
-field, or to hash them and concatenate the fixed-length hashes.
+Escaping the delimiter can work, but is touchy. Two safe ways to do this
+are to either prefix all variable-length strings with a fixed-size
+length field, or to hash them and concatenate the fixed-length hashes.
 
 ```
 def safe_cat(a, b):
@@ -560,6 +640,9 @@ def safe_cat(a, b):
 def safe_hashcat(a, b):
     return sha256(a).digest() + sha256(b).digest()
 ```
+
+Of course, both sides must use the same order, and the same
+concatenation technique.
 
 * [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/spake2.py#L45):
   transcript =
@@ -579,7 +662,10 @@ fixed lengths.
 Finally, the transcript bytes are hashed, and the result is used as the
 shared key. The library must choose the hash function to use (SHA256 is
 a fine choice), which nails down exactly how large the shared key will
-be.
+be. Libraries should stick to some fixed-length hash function (either
+SHA256, SHA512, or BLAKE2) and return a single key. Applications which
+want more key material should feed this shared key into
+[HKDF](https://tools.ietf.org/html/rfc5869).
 
 Hash functions can be specialized for specific purposes (the HKDF
 "context" argument provides this, or the BLAKE2 "personalization"
@@ -588,6 +674,8 @@ be confused with those used for some other purpose. For SPAKE2 this
 doesn't seem likely, but a given library might choose to use a
 personalization string that captures the other implementation-specific
 choices that it makes.
+
+Both sides must use the same hash function and personalization choices.
 
 * [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/spake2.py#L45):
   key = sha256(transcript)
@@ -604,32 +692,95 @@ from 1 to P-1 inclusive). The considerations and techniques described
 above are all important, however since this is kept secret, it doesn't
 actually matter how any given implementation does it.
 
+### Things That Do Matter
+
+A summary of the choices that both sides must agree upon to achieve
+interoperability (some of these are made by in library's code, and
+others are *inputs* to the library):
+
+* the two identity strings
+* how identity strings are encoded into the transcript
+* the group to use
+* which generator of that group to use
+* how group elements are encoded (for messages and the transcript)
+* the "arbitrary elements" (M/N)
+* the password
+* how the password is turned into a scalar
+* how the password is encoded into the transcript
+* the order of things going into the transcript
+* the safe-concatenation technique of the transcript
+* how to hash the transcript into the final key
+
+And additional choices that affect security (but poor choices would not
+show up as interoperability failures):
+
+* using a group where discrete log is difficult
+* using "arbitrary elements" without a known discrete log
+* rejecting invalid encoded elements
+* safely concatenating the pieces of the transcript
+
 ## Testing Interoperability
 
 The interactive nature of the protocol makes it particularly hard to
 write unit tests of interoperability, especially the kind where you
 compare a new execution transcript against a known "good" trace copied
-earlier. If we could usefully replay a transcript of the interaction,
-then it wouldn't be a zero-knowledge proof. To test two implementations
-against each other non-interactively, we have to break both
-implementations, by forcing them to use a known scalar, rather than a
-unique random value.
+earlier. SPAKE2 is a form of ZKP ("zero-knowledge proof"): you're
+proving that you know the same password as the other side, without
+revealing any other knowledge about it. In fact the way you prove that
+this is a ZKP is by showing that someone who doesn't know the password
+could still generate a transcript that's indistinguishable from a real
+one.
+
+So we can't just take a transcript of some reference implementation
+(say, python-spake2) and copy it into the non-interactive unit tests of
+a new implementation (say, spake2.rs). Testing a non-modified SPAKE2
+implementation requires something interactive: either having both
+implementations in the same program (e.g. your Rust unit tests have to
+run python code too), or using an online server to query the other
+implementation (your unit tests must make network calls).
+
+The key feature of SPAKE2 that enables the ZKP proof is the private
+scalar (selected randomly during the first function, used to construct
+the first message, stored in the state vector, and used again to process
+the second message). For the algorithm to be secure, this scalar must be
+selected uniformly at random from the full range of the group order, it
+must never be revealed outside the library, and every single run of the
+protocol must generate a fresh value.
+
+So, to test two implementations against each other non-interactively, we
+would have to break both implementations, by forcing them to use a known
+scalar, rather than a unique random value. We run the reference
+implementation as Alice with some fixed scalar, and then copy the
+generated message into our unit tests. We run it again as Bob, with a
+different fixed scalar, and copy that message too. We combine Alice and
+Bob, and record the shared key.
+
+Now, in our new implementation, we find a way to force it to use the
+same scalar that we used in Bob. We assert that:
+
+* the new implementation's Bob produces the same outbound message, given
+  the same secret scalar
+* when given Alice's message, the new code produces the same shared key
 
 This requires modifying the code. We can't exercise the random-scalar
 part without interaction, but we can exercise everything beyond that
-point. Implementations should be factored into two parts: an outer
-function (called by application code) which generates a random scalar,
-and an inner function which accepts the scalar as input and generates
-the first message (and the state that's passed to the second half).
+point. So to enable non-interactive unit tests, implementations should
+be factored into two parts: an outer function (called by application
+code) which generates a random scalar, and an inner function which
+accepts the scalar as input and generates the first message (and the
+state that's passed to the second half). The inner function should never
+be exposed to applications: it should be private to the library's own
+unit tests.
 
+### Testing Server
 
-Testing would benefit from an online server that can perform protocol
-queries (with fully random values), which will emit both the normal
-protocol message *and* the normally-secret key. To help with debugging
-mismatches, this test server should also reveal its internal state: the
-secret scalar, and the full transcript. If your implementation gets a
-different key, you can go back and compare the intermediate values until
-you find the first one that doesn't match.
+Testing SPAKE2 implementations would benefit from an online server that
+can perform protocol queries (with fully random values), which will emit
+both the normal protocol message *and* the normally-secret key. To help
+with debugging mismatches, this test server should also reveal its
+internal state: the secret scalar, and the full transcript. If your
+implementation gets a different key, you can go back and compare the
+intermediate values until you find the first one that doesn't match.
 
 ### TODO (blog draft)
 
