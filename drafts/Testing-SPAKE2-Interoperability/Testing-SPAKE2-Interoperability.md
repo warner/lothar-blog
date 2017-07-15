@@ -38,11 +38,22 @@ of extra questions (listed below). To make it interoperate with others,
 you must both use the same answers. For protocols that are "grown up"
 enough, folks like the IETF will publish RFCs with those details. SPAKE2
 is not there yet ([RFC8125](https://www.rfc-editor.org/rfc/rfc8125.txt)
-defines some considerations, and the CFRG has only an (expired)
-[draft](https://datatracker.ietf.org/doc/draft-irtf-cfrg-spake2/)), so
-lucky us, we're on the cutting edge! The first few implementations may
-choose mutually-incompatible approaches, but eventually we can learn
-from each other and agree upon something interoperable.
+defines some considerations, and the CFRG has an
+[expired draft](https://datatracker.ietf.org/doc/draft-irtf-cfrg-spake2/)),
+so lucky us, we're on the cutting edge! The first few implementations
+might choose mutually-incompatible approaches, but eventually we can
+learn from each other and agree upon something interoperable.
+
+The 0.7 release of my python-spake2 library incorporates some decisions
+we made on
+[pull request #273](https://github.com/bitwiseshiftleft/sjcl/pull/273)
+of the [SJCL Project](https://github.com/bitwiseshiftleft/sjcl/) (a
+pure-javascript crypto library), where we were able to hash out a
+mostly-interoperable pair of libraries (python and JS). Some of the
+discussions there may be useful. Jonathan Lange and JP Calderone are
+working on [haskell-spake2](https://github.com/jml/haskell-spake2) and
+are aiming for compatibility with python-spake2.
+
 
 ## SPAKE2 Overview
 
@@ -72,7 +83,7 @@ thing which they do differently.
 Internally, these robots are going to generate some random numbers, do
 some math, generate a message, accept a message, do some more math,
 assemble a record of everything they've done and seen and thought into a
-"transcript", and then turn the transcript into a key. Part of the
+**transcript**, and then turn the transcript into a key. Part of the
 transcript will be secret, which is what makes the key secret too.
 
 ## Your SPAKE2 Library API
@@ -85,16 +96,16 @@ below. But you don't have complete freedom either: some constraints
 bleed through. We must glue together local API requirements, the wire
 format, and the SPAKE2 math itself.
 
-We'll consider some ``application`` that sits above the ``library`. You,
-as the library author, are providing an API to those applications. You
-don't know what they need SPAKE2 for, or how they're going to use it,
-but your job is to:
+We'll consider some **application** that sits above the **library**.
+You, as the library author, are providing an API to those applications.
+You don't know what they need SPAKE2 for, or how they're going to use
+it, but your job is to enable:
 
 * safety: give the application author a decent chance of getting things
   right
 * interoperability: enable compatibly-written applications (perhaps
-  using different libraries, written in other langauges altogether) get
-  the right results when run against an application using your library
+  using different libraries, in other langauges) get the right results
+  when run against an application using your library
 
 The library API we need to provide is pretty simple, and basically
 consists of two functions (but which could be expressed in different
@@ -142,9 +153,10 @@ constructor, and the second is just a method call on that same object.
 If the object can be serialized, or if the first function returns a
 serializeable state object, then the application may be able to shut
 down and be resumed in between the generation of the first message and
-the receipt of the second (if you offer serialization, make sure to warn
-authors against using the same state object twice, since this will hurt
-security).
+the receipt of the second (so the two users don't have to be online at
+the same time). If you offer serialization, make sure to warn authors
+against using the same state object twice, since this will hurt
+security.
 
 For two different libraries to interoperate, they must use the same key
 length. They must also encode the same password in the same way, as well
@@ -154,11 +166,11 @@ The application author's responsibilities are:
 
 * give their user a way to enter a password
 * deliver that password to your library (the first function)
-* take the message your library returns and deliver correctly it to some
+* take the message your library returns and deliver it correctly to some
   remote application
 * take the matching inbound message from the remote application and
   deliver it correctly to your library's second function
-* do something useful with the shared key returned by
+* do something useful with the shared key
 
 ### Symmetric Mode
 
@@ -177,9 +189,9 @@ The details that any given SPAKE2 implementation must define are:
 * what generator element to use
 * how to represent/encode the password, both as a scalar and in the
   transcript
-* what "arbitrary group elements" to use for M and N
-* how to represent the group element that is sent to the other party
-* how to parse+validate the group element received from the other party
+* what "arbitrary group elements" to use for M and N (and S)
+* how to encode the group element that is sent to the other party
+* how to decode+validate the group element received from the other party
 * how to assemble the transcript
 * how to hash the transcript into a key
 
@@ -213,13 +225,17 @@ all but the strangest of inputs.
 It's not entirely clear whether this conversion should be performed by
 the application or the library. The problem with doing it in the
 application is that using compatible SPAKE2 libraries may not be enough
-to achieve interoperability, and it will seem to work fine until a
-sufficiently novel username is encountered. The problem with doing it in
-the library is that it drags unicode into an otherwise somewhat
-clear-cut API, and hampers the application from using full 8-bit
-bytestrings if it should choose (perhaps the identities are public keys
-from some other system: they'd have to be encoded as unicode before
-passing into such an API).
+to achieve interoperability (if the applications encode differently),
+and everything will seem to work fine until a sufficiently novel
+username is encountered. The problem with doing it in the library is
+that it drags unicode into an otherwise somewhat clear-cut API, and
+hampers the application from using full 8-bit bytestrings if it should
+choose (perhaps the identities are public keys from some other system:
+they'd have to be encoded as unicode before passing into such an API).
+
+My recommendation is to have the library accept a bytestring, but
+provide guidance on what the application should do with unicode
+identities (which should be "encode with UTF-8 and NFC").
 
 The two identities must be given to ``start()``, and must be included in
 the state object so they can also be used inside ``finish()``. They
@@ -233,6 +249,7 @@ If Carol and Dave are using this protocol, and Carol passes
 ``side=A``, then Dave must say ``side=B``.
 
 * What python-spake2 does: bytestrings
+* What draft-irtf-crfg-spake2-03 does: bytestrings
 * Symmetric mode: there is only one identity, named "idS", but it can
   still be set to an arbitrary string to distinguish between different
   applications
@@ -253,29 +270,35 @@ to work with scalars.
 Some groups are faster than others, or have smaller elements and
 scalars, or are more or less secure.
 
-Ed25519 is a nice choice for the group, but you could use others. My
-python library defaults to Ed25519 but also implements a couple of
-integer groups.
+The Ed25519 signature protocol defines a group (sometimes named
+"X25519") with nice properties, but you could use others. My python
+library defaults to Ed25519 but also implements a couple of integer
+groups.
 
-Both sides must use the same group, of course. The choice of group will
-also dictate what generator to use for the base-point "scalarmult"
-operation, and will constrain many other choices.
+Both sides must use the same group, of course. Every group comes with a
+standard generator to use for the base-point "scalarmult" operation, and
+the group's order will constrain many other choices.
 
 * What python-spake2 does: defaults to Ed25519, but offers
   1024/2048/3072-bit integer groups too.
+* What draft-irtf-crfg-spake2-03 does: left as an exercise for the
+  reader, but sample M/N values are generated for SEC1 P256/P384/P521,
+  and Ed25519 gets a passing mention
 
 ### Password
 
-The input password should be a bytestring. Any necessary encoding should
+The input password should be a bytestring, of any length (your library
+shouldn't impose arbitrary length limits). Any necessary encoding should
 be done by the application before submitting a bytestring to the SPAKE2
 library (if the application needs to allow humans to choose the
 password, then it may want to accept unicode and perform UTF-8 encoding
-itself). The same arguments for identities apply here, but I prefer to
-make applications explicitly deal with the exciting possibilities that
-unicode passwords offer you. In addition, it's entirely valid to have
-the password be the output of some other hash function (maybe you
-stretch it with [Argon2](https://www.argon2.com/) first), in which case
-requiring a unicode string would be messy.
+itself).
+
+The same arguments for identities apply here, but I'm even more in favor
+of a bytestring API (rather than unicode), because it's entirely valid
+to have the password be the output of some other hash function (maybe
+you stretch it with [Argon2](https://www.argon2.com/) first), in which
+case requiring a unicode string would be messy.
 
 The password is needed in two places. The first (and most complicated)
 one is as a scalar in the chosen group, where it is used to blind the
@@ -283,11 +306,13 @@ public Diffie-Hellman parameters. The second is when it gets copied into
 the transcript (see below).
 
 For the first case, the password must be converted into a scalar of the
-chosen group. This will be an integer from 0 to the group order (the
-order will be some large prime number P, so the scalar will be meet the
-constraint ``0 <= pw_scalar < P``). This is typically performed by
-hashing the password into enough bits to exceed the size of the order,
-treating those bits as an integer, then taking the result ``mod P``.
+chosen group (this is enough of a nuisance that PAKE papers like to
+pretend that users have integers as passwords rather than strings). This
+will be an integer from 0 to the group order (the order will be some
+large prime number P, so the scalar will be meet the constraint ``0 <=
+pw_scalar < P``). This is typically performed by hashing the password
+into enough bits to exceed the size of the order, treating those bits as
+an integer, then taking the result ``mod P``.
 
 ```
 def convert_password_to_scalar(password_bytes, P):
@@ -344,10 +369,9 @@ turned into an integer (big-endian vs little-endian will trip you up),
 and the final modulo operation.
 
 Also note that, while scalars are "really" just integers, many crypto
-libraries (even ones written in languages with convenient
-arbitrary-sized "bigint" support) do not represent them that way.
-Instead they may be stored in an opaque binary array, to make the math
-faster.
+libraries (even ones written in languages like Python with built-in
+"bigint" support) do not represent them that way. Instead they may be
+stored in an opaque binary array, to make the math faster.
 
 When I wrote python-spake2, I was (incorrectly) worried about
 uniformity, so I used an overly complicated approach. If I were to start
@@ -357,18 +381,32 @@ again, I'd use something simpler.
   HKDF(password, info="SPAKE2 pw", salt="", hash=SHA256), expand to
   32+16 bytes, treat as big-endian integer, modulo down to the Ed25519
   group order (2^252+stuff)
+* What draft-irtf-crfg-spake2-03 does: left as an exercise, although
+  key-stretching is recommended
+  
+Note that key-stretching only matters if the same password is used for
+multiple executions of the protocol. Stretching would be most useful on
+a login system using the SPAKE2+ variant. In SPAKE2+, the "server" side
+stores a derivative of the password, so a server compromise does not
+immediately allow client impersonation: this password derivative must
+first be brute-forced to reveal the original password, and each loop of
+this process will be lengthened by the stretch. In magic-wormhole, a new
+wormhole code is generated each time, and nothing is stored anywhere, so
+stretching is not necessary.
+
 
 ### Arbitrary Group Elements: M and N
 
-The M and N elements must be constructed in a way that prevents anyone
-from knowing their discrete log. This generally means hashing some seed
-and then converting the hash output into an element. For integer groups
-this is pretty easy: just treat the bits as an integer, and then clamp
-to the right range. For elliptic-curve groups, you treat the bits as a
-compressed representation of a point (i.e. pretend the bits are the Y
-coordinate, then recover the X coordinate), but you must make sure that
-the point is correct too: it must be on the right curve (not the twist),
-and it must be in the right subgroup.
+The M and N elements must be constructed in a way that
+[prevents anyone from knowing their discrete log](http://www.lothar.com/blog/54-spake2-random-elements/).
+This generally means hashing some seed and then converting the hash
+output into an element. For integer groups this is pretty easy: just
+treat the bits as an integer, and then clamp to the right range. For
+elliptic-curve groups, you treat the bits as a compressed representation
+of a point (i.e. pretend the bits are the Y coordinate, then recover the
+X coordinate), but you must make sure that the point is correct too: it
+must be on the correct curve (not the twist), and it must be in the
+correct subgroup.
 
 Nominally, this only ever needs to be done once. I could copy the M and
 N values from python-spake2 into spake2.rs (as a big hex string) and
@@ -394,6 +432,13 @@ algorithm into the new language too.
   way, with a seed of ``S``, and is used for blinding/unblinding in both
   directions (where SPAKE2 says "N", replace it with S, and where SPAKE2
   says "M", also replace it with S).
+* What draft-irtf-crfg-spake2-03 does: find the OID for the curve,
+  generate an infinite series of bytes (start with SHA256("$OID point
+  generation seed (M)") for that OID to get the first 32 bytes, then
+  SHA256(first 32 bytes) to get the second 32 bytes, repeat), slice into
+  encoded-element lengths, clamp bits as necessary, interpret as point,
+  if that fails repeat with the next slice. Do the same with "(N)".
+
 
 ### Element Representation and Parsing (Encode/Decode)
 
@@ -459,6 +504,8 @@ function, it can throw an exception.
   not-in-correct-subgroup points during parsing. A one-byte "side
   identifier" is prepended to the outgoing message, and this identifier
   is checked and stripped on the inbound function.
+* What draft-irtf-crfg-spake2-03 does: specified by the choice of group,
+  suggests SEC1 uncompressed or big-endian integers
 
 ### Transcript Generation
 
@@ -519,6 +566,13 @@ def safe_hashcat(a, b):
   sha256(password)+sha256(idA)+sha256(idB)+msg_A+msg_B+shared_element.to_bytes()
 * Symmetric Mode: sort the two messages lexicographically to get
   msg_first and msg_second, then transcript = sha256(password)+sha256(idS)+msg_first+msg_second+shared_element.to_bytes()
+* What draft-irtf-crfg-spake2-03 does: len(A)+A+len(B)+B+len(B_msg)+B_msg+len(A_msg)+A_msg+len(shared_element)+shared_element+len(password_scalar)+password_scalar
+
+In draft-irtf-crfg-spake2-03, `len(x)` uses 8-byte little-endian
+encoding. The shared element is encoded the same way as it would be on
+the wire. The hash uses the password scalar, rather than the password
+itself. All fields are length-prefixed even though most of them have
+fixed lengths.
 
 ### Hashing the Transcript
 
@@ -537,6 +591,18 @@ choices that it makes.
 
 * [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/spake2.py#L45):
   key = sha256(transcript)
+* What draft-irtf-crfg-spake2-03 uses: left as an exercise
+
+### Things That Don't Matter
+
+SPAKE2 implementations must also choose a random secret scalar. They'll
+use this to compute the message that gets sent to their peer, and then
+they use it again on the message they receive from their peer. They need a fresh new scalar each time they run the protocol.
+
+This scalar be chosen uniformly from the full range (excluding 0, so
+from 1 to P-1 inclusive). The considerations and techniques described
+above are all important, however since this is kept secret, it doesn't
+actually matter how any given implementation does it.
 
 ## Testing Interoperability
 
