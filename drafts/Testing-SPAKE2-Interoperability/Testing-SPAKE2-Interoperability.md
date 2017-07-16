@@ -4,7 +4,6 @@ Title: Testing SPAKE2 Interoperability
 Category: cryptography
 
 !BEGIN-SUMMARY!
-
 I've been working on
 a [Rust implementation](https://github.com/warner/spake2.rs) of SPAKE2.
 I want it to be compatible with
@@ -13,7 +12,6 @@ need to change? Where have I accidentally indulged in protocol design,
 so a choice I make in this library might cause it to behave differently
 than somebody else's library? How can I write unit tests for
 interoperability?
-
 !END-SUMMARY!
 
 This post walks through the parts of the SPAKE2 protocol that a library
@@ -302,66 +300,70 @@ you stretch it with [Argon2](https://www.argon2.com/) first), in which
 case requiring a unicode string would be messy.
 
 The password is needed in two places. The first (and most complicated)
-one is as a scalar in the chosen group, where it is used to blind the
-public Diffie-Hellman parameters. The second is when it gets copied into
-the transcript (see below).
+is as a scalar, where it is used to blind the public Diffie-Hellman
+parameters. The second is when it gets copied into the transcript (see
+below).
 
 For the first case, the password must be converted into a scalar of the
-chosen group (this is enough of a nuisance that PAKE papers like to
-pretend that users have integers as passwords rather than strings). This
-will be an integer from 0 to the group order (the order will be some
-large prime number P, so the scalar will be meet the constraint ``0 <=
-pw_scalar < P``). This is typically performed by hashing the password
-into enough bits to exceed the size of the order, treating those bits as
-an integer, then taking the result ``mod P``.
+chosen group. This is enough of a nuisance that PAKE papers like to
+pretend that users have hundred-digit integers as passwords rather than
+strings, so they can avoid discussing how to get from one to the other.
+Our SPAKE2 library will be responsible for this conversion.
+
+This scalar will be an integer from 0 to the group order (the order will
+be some large prime number P, so the scalar will be meet the constraint
+``0 <= pw_scalar < P``). This is typically performed by hashing the
+password string into bits, treating those bits as an integer, then
+taking the result ``mod P``.
 
 ```
 def convert_password_to_scalar(password_bytes, P):
     pw_hash_bytes = sha256(password_bytes).digest()
-    # double-check that our hash function produces a big enough integer
-    assert len(pw_hash_bytes) > (4*len("{:x}".format(P)))
     pw_hash_int = int(binascii.hexlify(pw_hash_bytes), 16)
-    pw_hash_scalar = pw_hash_int % P
-    return pw_hash_scalar
+    pw_scalar = pw_hash_int % P
+    return pw_scalar
 ```
 
-Since the order is always prime, and the hash output is always an
-integral number of bits, the mapping will never be exactly uniform. Some
-protocols are weakened by non-uniform scalars (such as the random ``k``
-nonce in non-deterministic ECDSA), so you may need to minimize the bias
-imposed by the case where your hash integer is larger than P. For
-example, if P=13, and you use a 4-bit hash, then you'll get a 0 or 1 or
-2 twice as often as any other scalar, which is a huge bias. So you'll
-see some crypto libraries try to reduce this bias.
+It is tempting to use a function that guarantees a uniform distribution
+of scalars, without the above example's bias towards the smaller ones
+(if ``P`` is a bit smaller than ``2^256`` then the first few scalars
+will occur twice as frequently as the rest; if ``P`` is larger, then the
+last few scalars won't occur at all). Especially since that function may
+already exist: there are other places in Diffie-Hellman and SPAKE2 where
+you need to generate a uniformly random scalar, and in those cases it's
+easy to combine a random seed (from ``os.urandom()``) with a
+seed-to-uniform-scalar function. This also makes deterministic unit
+tests easier to write: just use a fixed seed.
 
-The "try-try-again" fix, which I used
-in [python-ecdsa](https://github.com/warner/python-ecdsa), is to skip
-the ``%P``, include a counter in the hash input, and keep incrementing
-the counter until the hash output integer just so happens to be in the
-right range. This takes an unpredictable amount of time (although on
-average you only have to try twice, if you truncate the hash output
-right), but provides a perfectly uniform output.
+It is possible to achieve uniformity, but I'll defer the details of such
+an algorithm to a future blog post, because we don't actually need it
+for this particular use case. The password isn't uniformly distributed
+in the first place, so it's ok if the scalar is somewhat biased.
 
-Unbounded runtime is a drag, so the practice of e.g. the Ed25519 code is
-to use a hash that's at least 128 bits longer than the order, which is
-enough to "spread out" the wraparound region and reduce the bias to a
-small fraction of a bit.
+The main reason for using a hash is to accomodate arbitrary-length
+human-meaningful passwords, which are decided without any knowledge of
+the order of the curve they'll eventually be applied to.
 
-```
-# conversion that reduces the bias to a fraction of a bit
-assert (512/8) > (128 + 4*len("%x" % P))
-pw_hash_bytes = sha512(u"password".encode("utf-8")).digest()
-pw_hash_int = int(binascii.hexlify(pw_hash_bytes), 16)
-pw_hash_scalar = pw_hash_int % P
-```
+The hash function doesn't matter too much, but should be wide enough to
+let each password map to a distinct scalar (e.g. a 16-bit hash function
+would waste a lot of password entropy). 256 bits is more entropy than
+any conceivable password, so using ``convert_password_to_scalar()`` from
+above should be plenty, regardless of the curve order.
 
-Fortunately we don't need any of this for PAKE protocols (neither SPAKE2
-nor other members of the family): the password isn't uniformly
-distributed anyways, so we don't require the scalar to be uniform
-either. The main reason for using a hash is to accomodate
-arbitrary-length passwords. 256 bits is more entropy than any
-conceivable password, so using ``convert_password_to_scalar()`` from
-above should be plenty.
+If the group order is smaller than ``2^256``, then the modulo function
+will kick in, to wrap the scalar down into the right range. Technically
+it would be fine to use the larger unwrapped integers, because
+technically "scalars" are actually "equivalence classes of integers
+modulo P", which means that when you pass in a "1", you're really
+passing an abstract object that represents every integer ``x`` such that
+``mod(x,P) == 1`). But crypto APIs expect concrete fixed-sized inputs,
+not abstract equivalence-class objects, and size-limited integers meet
+that expectation.
+
+Also note that some crypto libraries store scalars as opaque binary
+arrays, for speed, even when the language has built-in "bigint" support.
+So your password-to-scalar function may need to use a library-specific
+large-integer-to-scalar function.
 
 Both sides must perform this conversion in exactly the same way,
 otherwise they'll get mismatched keys. All aspects must be the same: the
@@ -369,14 +371,12 @@ overall algorithm, the hash function you use, the way the hash output is
 turned into an integer (big-endian vs little-endian will trip you up),
 and the final modulo operation.
 
-Also note that, while scalars are "really" just integers, many crypto
-libraries (even ones written in languages like Python with built-in
-"bigint" support) do not represent them that way. Instead they may be
-stored in an opaque binary array, to make the math faster.
-
 When I wrote python-spake2, I was (incorrectly) worried about
-uniformity, so I used an overly complicated approach. If I were to start
-again, I'd use something simpler.
+uniformity, so I used an overly complicated approach (which mimics the
+Ed25519 random-scalar-generation code: hash the seed to a much larger
+range than is really necessary before moduloing down to P; this reduces
+the bias to a tiny fraction of a bit). If I were to start again, I'd use
+something simpler.
 
 * [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/groups.py#L70):
   HKDF(password, info="SPAKE2 pw", salt="", hash=SHA256), expand to
