@@ -261,10 +261,10 @@ an "elliptic curve" group, each element is also known as a "point" (the
 elements of integer groups are integers, and other groups use other
 kinds of elements). So you'll see references to "point encoding" and
 "point validation". The other thing to know about groups is that there's
-a second thing called a "Scalar", which is just an integer, limited to a
-range between 0 and a big prime number (which depends on the group).
-Sometimes you'll need to deal with group elements, sometimes you'll need
-to work with scalars.
+a second thing called a "Scalar", which is basically just an integer,
+limited by a big prime number (which depends on the group). Sometimes
+you'll need to deal with group elements, sometimes you'll need to work
+with scalars.
 
 Some groups are faster than others, or have smaller elements and
 scalars, or are more or less secure.
@@ -310,11 +310,25 @@ pretend that users have hundred-digit integers as passwords rather than
 strings, so they can avoid discussing how to get from one to the other.
 Our SPAKE2 library will be responsible for this conversion.
 
-This scalar will be an integer from 0 to the group order (the order will
-be some large prime number P, so the scalar will be meet the constraint
-``0 <= pw_scalar < P``). This is typically performed by hashing the
-password string into bits, treating those bits as an integer, then
-taking the result ``mod P``.
+There is some confusion about the precise range of scalars. Some
+references (including the original SPAKE2 paper) say ``Zp``, which means
+any positive integer less than P (``0 <= pw_scalar < P``). The
+[Handbook of Applied Cryptography](http://cacr.uwaterloo.ca/hac/)
+section on Diffie-Hellman (protocol 12.47, page 516) says scalars should
+be ``1 <= x <= P-2`` (excluding both 0 and -1). I'm pretty sure that 0
+is a bad choice: it will cause the resulting shared element to always be
+the same thing (the identity element), independent of the password. But
+P is huge, so the chance of accidentally getting a scalar of 0 (or any
+other specific value) is effectively zero. And scalars only come from
+trusted sources (ourselves, or our state vector), not from the network
+(where an attacker could manipulate them), so we don't need to worry
+about deliberate sabotage.
+
+So for simplicity, we'll just say that this scalar will be an integer
+from 0 to the group order (the order will be some large prime number P,
+so the scalar will be meet the constraint ``0 <= pw_scalar < P``). This
+is typically performed by hashing the password string into bits,
+treating those bits as an integer, then taking the result ``mod P``.
 
 ```
 def convert_password_to_scalar(password_bytes, P):
@@ -342,13 +356,18 @@ in the first place, so it's ok if the scalar is somewhat biased.
 
 The main reason for using a hash is to accomodate arbitrary-length
 human-meaningful passwords, which are decided without any knowledge of
-the order of the curve they'll eventually be applied to.
+the order of the curve they'll eventually be applied to. A secondary
+reason is to support our assumption above (about 0 being statistically
+impossible): we want to make sure than an empty password, or a password
+consisting of all 0x00 bytes, will still give us a reasonable non-zero
+scalar.
 
-The hash function doesn't matter too much, but should be wide enough to
-let each password map to a distinct scalar (e.g. a 16-bit hash function
-would waste a lot of password entropy). 256 bits is more entropy than
-any conceivable password, so using ``convert_password_to_scalar()`` from
-above should be plenty, regardless of the curve order.
+The exact hash function doesn't matter too much, but should be wide
+enough to let each password map to a distinct scalar (e.g. a 16-bit hash
+function would waste a lot of password entropy). 256 bits is more
+entropy than any conceivable password, so using
+``convert_password_to_scalar()`` from above should be plenty, regardless
+of the curve order.
 
 If the group order is smaller than ``2^256``, then the modulo function
 will kick in, to wrap the scalar down into the right range. Technically
@@ -361,9 +380,11 @@ not abstract equivalence-class objects, and size-limited integers meet
 that expectation.
 
 Also note that some crypto libraries store scalars as opaque binary
-arrays, for speed, even when the language has built-in "bigint" support.
-So your password-to-scalar function may need to use a library-specific
-large-integer-to-scalar function.
+structures (e.g. arrays of 51 bit integers, to
+[speed up](https://www.imperialviolet.org/2010/12/04/ecc.html) the
+math), even when the language has built-in "bigint" support. So your
+password-to-scalar function may need to use a library-specific
+large-integer-to-scalar-object function.
 
 Both sides must perform this conversion in exactly the same way,
 otherwise they'll get mismatched keys. All aspects must be the same: the
@@ -512,9 +533,13 @@ On the receiving side, the library must parse the incoming bytes into a
 group element. Obviously the encoder/parser pair must round-trip
 correctly for anything generated by our library, but it must also work
 *safely* for other random strings, including deliberate modifications of
-otherwise-valid values by an attacker. There is some debate about the
-issue, but for safety, the receiving side should reject any message
-which turns into:
+otherwise-valid values by an attacker (intended to force the key to some
+known value that's independent of the password). There
+[is](https://moderncrypto.org/mail-archive/curves/2017/000896.html)
+[some](https://moderncrypto.org/mail-archive/curves/2015/000551.html)
+[debate](https://neilmadden.wordpress.com/2017/05/17/so-how-do-you-validate-nist-ecdh-public-keys/)
+about the issue, but for safety, the receiving side should reject any
+message which turns into:
 
 * a point that's not actually on the right curve
 * a point that's not actually a member of the expected subgroup
@@ -524,7 +549,8 @@ against the curve equation, which takes time. The latter is done by
 multiplying by the order of the group (the details of which depend upon
 the "cofactor"), and can take as much time as the main SPAKE2 math
 itself (so potentially doubling the total CPU cost). However both are
-important to do, and worth the slowdown.
+important to do, and worth the slowdown: it will be trivial compared to
+the network delay.
 
 Note that whatever crypto library you use will probably implement
 point-encoding and decoding for you. In general, this is great, because
@@ -573,7 +599,9 @@ session with an Alice+Carol session. In addition, the shared element
 isn't a uniformly random key: for starters it isn't even a bytestring.
 And serializing a random element doesn't get you a random bytestring:
 there are usually distinctive patterns, like the high bit is always set,
-or the low bits are always clear.
+or the low bits are always clear, or its value as an integer is always
+smaller than the group order. Our goal is a fixed number of
+independently uniformly random bits, usually 256 of them.
 
 Modern protocols handle both these problems by building a "conversation
 transcript", which contains every message that was exchanged (as well as
@@ -582,23 +610,38 @@ the whole thing. The hash function hides any structure from the secret
 element, and the inclusion of the other messages prevents the
 mix-and-match attacks.
 
-The SPAKE2 transcript needs to include all of the following (as bytes):
+It's as if Alice's SPAKE2 Robot keeps a journal as it works, with the
+following entries:
 
-* the password
-* the "identity strings" for both sides
-* the messages that were exchanged
-* the shared derived group element
+* This a journal about a SPAKE2 conversation.
+* We're using a password of: ``password``
+* The first side's identity is: ``Alice``
+* The second side's identity is: ``Bob``
+* The first side sent a message to the second side with: ``MESSAGE1``
+* The second side sent a message to the first side with: ``MESSAGE2``
+* I derived a shared group element of: ``SECRET SHARED ELEMENT``
+
+Except that everything in the transcript needs to be a bytestring. Bob's
+robot will have an identical journal: note that every statement is true
+for both sides (assuming the shared element works out), and nothing is
+specific to a given side (e.g. the phrase "I am Alice" or "I am the
+first side" does not appear).
 
 The password could be hashed in its original form (as a bytestring), or
 as a scalar (which must then be serialized into a bytestring). We need
 the scalar form in both the first and the second functions, so you have
 a couple of choices of CPU and space usage (noting that both are
-trivial):
+miniscule):
 
 * store only the bytestring in the state vector, and re-convert to a
-  scalar in the second function, and then hash either
-* store only the scalar in the state vector, and hash the scalar
-* store both in the state, and hash either
+  scalar in the second function, then hash the bytestring
+* store only the bytestring in the state vector, and re-convert to a
+  scalar in the second function, then hash the serialized scalar
+* store only the scalar in the state vector, and hash the serialized
+  scalar
+* store both in the state, and hash the bytestring (this is my
+  preference)
+* store both in the state, and hash the serialized scalar
 
 The messages could include the "side" marker, or not. Since the messages
 need to be bytestrings for transmission anyways, it makes sense to use
@@ -625,15 +668,19 @@ def unsafe_cat2(a, b): return a+":"+b
 assert unsafe_cat("you:lo", "se") != unsafe_cat("you", "lo:se")
 ```
 
-Escaping the delimiter can work, but is touchy. Two safe ways to do this
-are to either prefix all variable-length strings with a fixed-size
-length field, or to hash them and concatenate the fixed-length hashes.
+Escaping the delimiter can work, but is touchy.
+
+Two safe and easy ways to do this are:
+
+* prefix all variable-length strings with a fixed-size length field
+* hash each variable-length string first, and concatenate the
+  fixed-length hashes
 
 ```
 def safe_cat(a, b):
-    assert len(a) < 2**64
+    assert len(a) < 2**64 # length fits in 8 bytes
     assert len(b) < 2**64
-    return struct.pack(">LsLs", len(a), a, len(b), b)
+    return "".join([(struct.pack(">Q", len(x)) + x) for x in [a,b]])
 ```
 
 ```
@@ -641,21 +688,22 @@ def safe_hashcat(a, b):
     return sha256(a).digest() + sha256(b).digest()
 ```
 
-Of course, both sides must use the same order, and the same
-concatenation technique.
+Of course, both sides must use the same order of elements, the same
+encoding for each element, and the same final concatenation technique.
 
 * [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/spake2.py#L45):
   transcript =
   sha256(password)+sha256(idA)+sha256(idB)+msg_A+msg_B+shared_element.to_bytes()
 * Symmetric Mode: sort the two messages lexicographically to get
   msg_first and msg_second, then transcript = sha256(password)+sha256(idS)+msg_first+msg_second+shared_element.to_bytes()
-* What draft-irtf-crfg-spake2-03 does: len(A)+A+len(B)+B+len(B_msg)+B_msg+len(A_msg)+A_msg+len(shared_element)+shared_element+len(password_scalar)+password_scalar
+* What draft-irtf-crfg-spake2-03 does: len(idA)+idA+ len(idB)+idB+ len(B_msg)+B_msg+ len(A_msg)+A_msg+ len(shared_element)+shared_element+ len(password_scalar)+password_scalar
 
 In draft-irtf-crfg-spake2-03, `len(x)` uses 8-byte little-endian
 encoding. The shared element is encoded the same way as it would be on
 the wire. The hash uses the password scalar, rather than the password
 itself. All fields are length-prefixed even though most of them have
-fixed lengths.
+fixed lengths. And for some reason (maybe a typo) ``B_msg`` appears
+before ``A_msg``, even though ``idA`` appears before ``idB``.
 
 ### Hashing the Transcript
 
@@ -673,7 +721,11 @@ string). This helps to ensure that hashes computed for one purpose won't
 be confused with those used for some other purpose. For SPAKE2 this
 doesn't seem likely, but a given library might choose to use a
 personalization string that captures the other implementation-specific
-choices that it makes.
+choices that it makes. Alternatively, the transcript can include a fixed
+string that encapsulates the rest of the protocol (the first line could
+be "This is a journal about an RFC-NNNN -formatted SPAKE2 conversation",
+where the RFC specifies the hashes and groups and fixed elements and
+everything else).
 
 Both sides must use the same hash function and personalization choices.
 
@@ -681,11 +733,14 @@ Both sides must use the same hash function and personalization choices.
   key = sha256(transcript)
 * What draft-irtf-crfg-spake2-03 uses: left as an exercise
 
-### Things That Don't Matter
+### Things That Don't Matter (for interoperability)
 
 SPAKE2 implementations must also choose a random secret scalar. They'll
 use this to compute the message that gets sent to their peer, and then
-they use it again on the message they receive from their peer. They need a fresh new scalar each time they run the protocol.
+they use it again on the message they receive from their peer. It is
+[imperative](https://arstechnica.com/gaming/2010/12/ps3-hacked-through-poor-implementation-of-cryptography/)
+to use a [fresh](https://www.xkcd.com/221/) new scalar each time they
+run the protocol.
 
 This scalar be chosen uniformly from the full range (excluding 0, so
 from 1 to P-1 inclusive). The considerations and techniques described
@@ -781,10 +836,3 @@ with debugging mismatches, this test server should also reveal its
 internal state: the secret scalar, and the full transcript. If your
 implementation gets a different key, you can go back and compare the
 intermediate values until you find the first one that doesn't match.
-
-### TODO (blog draft)
-
-* do we need to minimize bias in the password-to-scalar function?
-* remove discussion about uniform password-to-scalar hashing?
-* Element Representation: link "some debate about the issue" to the
-  curves-list discussion
