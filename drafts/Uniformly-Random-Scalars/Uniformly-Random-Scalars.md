@@ -64,10 +64,16 @@ wind up with things like the
 where they hard-coded the value of ``k``, allowing the private key to be
 recovered trivially with just two signatures.
 
-It isn't clear if other protocols (like DH) are quite this vulnerable,
-but the security proofs are built around the assumption that the scalar
-is unique and uniformly random, so to be safe we must follow those
-rules.
+It isn't clear if other protocols (like DH) are quite this vulnerable.
+[The Logjam paper](https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf),
+in section 3.5, mentions attacks on small-exponent DH in poorly-chosen
+integer groups, and this
+[email about Curve25519 scalars](https://www.ietf.org/mail-archive/web/cfrg/current/msg05004.html)
+points out the attack-resistance provided by their specific clamping
+decisions (which constrain the scalar to certain values). But in
+general, our security proofs are built around the assumption that the
+scalar is unique and uniformly random, so to be safe we must follow
+those rules.
 
 ## How?
 
@@ -75,8 +81,8 @@ We can assume that our operating system gives us a source of random
 bytes. ``/dev/urandom`` on a fully-initialized unix-like host will give
 us as many as we need.
 
-If we were trying to produce uniform bytes, that'd be great. It would
-also be easy to produce integers from a range that's a nice power of two
+If our target range was a power of 256, that'd be trivial. It would also
+be easy to produce integers in a range that's any integral power of two
 (you just mask off the extra bits, and treat the result as an integer).
 But since P is a prime, we're never going to have a nice round size for
 truncation.
@@ -109,8 +115,8 @@ def make_random_scalar_with_bytes(seed_length_bytes, P):
 ```
 
 What's a reasonable choice of seed length? For the Curve25519 group, P
-between ``2**252`` and ``2**253``. If we use 253 random bits (which you
-get from 32 random bytes by doing something like ``seed_bytes[0] &=
+is between ``2**252`` and ``2**253``. If we use 253 random bits (which
+you get from 32 random bytes by doing something like ``seed_bytes[0] &=
 0x1F`` to mask out the top three bits), then we'll get a suitable value
 a bit more than half the time, and the modulo function will kick in
 (i.e. "aliasing" occurs) a bit less than half the time.
@@ -132,7 +138,7 @@ logarithm of our target P.
 ## The Best Good-Enough Solution
 
 The simplest solution that yields a minimal bias is to throw more bits
-at the problem. Using a ``seed_length`` that's 16 bytes (128 bits)
+at the problem. Using a ``seed_length`` that's 32 bytes (128 bits)
 larger than we really need reduces the bias to a statistically
 insignificant level. In this case, we're aliasing almost **all** the
 time:
@@ -147,8 +153,18 @@ def make_random_scalar(P):
     return make_random_scalar_with_bytes(safe_length_bytes, P)
 ```
 
-This is the approach used by the Ed25519 codebase (note to self: wait,
-really? doesn't it just clamp 32 bytes? find the reference!).
+This is the approach used by the Ed25519 codebase to compute unbiased
+deterministic nonces from the private key and the message being signed.
+These nonces have the same requirements as ECDSA: they must be unique
+and unbiased. The Ed25519 signing function creates a 512-bit hash and
+then reduces it down to the ~252-bit group order: see the bottom of page
+6 of the [Ed25519 paper](http://ed25519.cr.yp.to/ed25519-20110926.pdf),
+where ``r`` is the nonce, and computations end up being performed mod
+``P`` (which they call ``l``). They use about 258 extra bits.
+
+[FIPS 186-4](http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf),
+which defines DSA and ECDSA, says that 64 extra bits are sufficient (in
+appendix B.2.1).
 
 ## The Exact Solution: Try-Try-Again
 
@@ -169,7 +185,7 @@ pass.
 
 But this is an exponential distribution: if you're really unlucky, it
 could take thousands of iterations before you find a suitable integer,
-or worse. The **mean** is bounded, but the **median** is infinite.
+or worse. The **mean** is small, but the **maximum** is infinite.
 
 I used this "try-try-again" algorithm as an option in
 [python-ecdsa](https://github.com/warner/python-ecdsa). But unbounded
@@ -291,3 +307,8 @@ So if you're looking at the ``password_to_scalar``
 [function](https://github.com/warner/python-spake2/blob/master/src/spake2/groups.py#L70)
 in [python-spake2](https://github.com/warner/python-spake2) and think
 it's unnecessarily complicated, that's why.
+
+## Conclusions
+
+Thanks to Thomas Ptáček, Sean Devlin, Thomas Pornin, and Zaki Manian for
+their advice and feedback.
