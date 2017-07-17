@@ -8,220 +8,286 @@ way to choose a uniformly random scalar from some prime-order range.
 Why? What is the best way to do this?
 !END-SUMMARY!
 
-Classic Diffie-Hellman Key Exchange (which, to be picky, is really Key
-Agreement) starts with each side chosing a random scalar. This 
+Classic
+[Diffie-Hellman Key Exchange](https://en.wikipedia.org/wiki/Diffie_hellman)
+starts with each side chosing a random scalar. This is kept secret, but
+is used to derive a "public ephemeral element" that is sent to the other
+side. It is also used on the peer's ephemeral element to build the
+shared secret element, from which the final secret key is derived.
+SPAKE2, as a modified DH protocol, relies on this secret random scalar
+too.
 
+Scalars are basically integers in a specific range, bounded by the order
+of an Abelian group, which is generally a big prime number P. To be
+precise, scalars are "equivalence classes of integers modulo P", meaning
+that you're choosing a *class* of integers, all of which are equal to
+each other if your idea of "equal" is modulo P. Each of these classes
+can be *represented* by a single member, which is an integer between 0
+and P, so we usually pretend that scalars are just integers with the
+constraint that ``0 <= x < P``.
 
-The password is needed in two places. The first (and most complicated)
-one is as a scalar in the chosen group, where it is used to blind the
-public Diffie-Hellman parameters. The second is when it gets copied into
-the transcript (see below).
+Also note: there is some confusion, at least in my mind, about the
+precise range of scalars. Some references (including the original SPAKE2
+paper) say ``Zp``, which means any positive integer less than P (``0 <=
+pw_scalar < P``). The
+[Handbook of Applied Cryptography](http://cacr.uwaterloo.ca/hac/)
+section on Diffie-Hellman (protocol 12.47, page 516) says scalars should
+be ``1 <= x <= P-2`` (excluding both 0 and -1). I'm pretty sure that 0
+is a bad choice: in DH it will cause the resulting shared element to
+always be the same thing (the identity element), independent of the
+other party's message. It's a bit like a
+[weak key](https://en.wikipedia.org/wiki/Weak_key) in symmetric ciphers.
+But P is huge, so the chance of accidentally getting a scalar of 0 (or
+any other specific value) is effectively zero. As long as the protocol
+only uses scalars from trusted sources (i.e. ourselves, not the
+network), we don't need to worry about it.
 
-For the first case, the password must be converted into a scalar of the
-chosen group (this is enough of a nuisance that PAKE papers like to
-pretend that users have integers as passwords rather than strings). This
-will be an integer from 0 to the group order (the order will be some
-large prime number P, so the scalar will be meet the constraint ``0 <=
-pw_scalar < P``). This is typically performed by hashing the password
-into enough bits to exceed the size of the order, treating those bits as
-an integer, then taking the result ``mod P``.
+So for simplicity, I'll define our task to be generating an integer
+``x``, where ``0 <= x < P`` for some large (prime) P, such that the
+value is uniformly randomly distributed in that range (all values are
+equally likely).
+
+## Why?
+
+The DSA and ECDSA signature algorithms also use a unique secret random
+scalar (known as a "nonce", or just ``k``), and
+[are vulnerable](https://crypto.stackexchange.com/questions/44644/how-does-the-biased-k-attack-on-ecdsa-work)
+to attack if nonce is biased. If you know the first or last few bits of
+each nonce, and you have multiple signatures to work with, then you can
+perform a much easier search for the signer's private key. In some
+cases, the private key can be recovered in a couple of hours.
+
+Of course, if the implementation
+[doesn't even try to be random](https://www.xkcd.com/221/), then you
+wind up with things like the
+[Playstation 3](https://arstechnica.com/gaming/2010/12/ps3-hacked-through-poor-implementation-of-cryptography/)
+where they hard-coded the value of ``k``, allowing the private key to be
+recovered trivially with just two signatures.
+
+It isn't clear if other protocols (like DH) are quite this vulnerable,
+but the security proofs are built around the assumption that the scalar
+is unique and uniformly random, so to be safe we must follow those
+rules.
+
+## How?
+
+We can assume that our operating system gives us a source of random
+bytes. ``/dev/urandom`` on a fully-initialized unix-like host will give
+us as many as we need.
+
+If we were trying to produce uniform bytes, that'd be great. It would
+also be easy to produce integers from a range that's a nice power of two
+(you just mask off the extra bits, and treat the result as an integer).
+But since P is a prime, we're never going to have a nice round size for
+truncation.
+
+Converting some number of seed bytes to an integer is pretty easy: treat
+the array of bytes as a base-256 number. In Python2, we can exploit the
+``hexlify()`` and ``int()`` functions to make this really fast (python3
+adds ``int.from_bytes()``, which is even better):
 
 ```
-def convert_password_to_scalar(password_bytes, P):
-    pw_hash_bytes = sha256(password_bytes).digest()
-    # double-check that our hash function produces a big enough integer
-    assert len(pw_hash_bytes) > (4*len("{:x}".format(P)))
-    pw_hash_int = int(binascii.hexlify(pw_hash_bytes), 16)
-    pw_hash_scalar = pw_hash_int % P
-    return pw_hash_scalar
+def bytes_to_integer(seed_bytes):
+    return int(binascii.hexlify(seed_bytes), 16)
 ```
 
-Since the order is always prime, and the hash output is always an
-integral number of bits, the mapping will never be exactly uniform. Some
-protocols are weakened by non-uniform scalars (such as the random ``k``
-nonce in non-deterministic ECDSA), so you may need to minimize the bias
-imposed by the case where your hash integer is larger than P. For
-example, if P=13, and you use a 4-bit hash, then you'll get a 0 or 1 or
-2 twice as often as any other scalar, which is a huge bias. So you'll
-see some crypto libraries try to reduce this bias.
-
-The "try-try-again" fix, which I used
-in [python-ecdsa](https://github.com/warner/python-ecdsa), is to skip
-the ``%P``, include a counter in the hash input, and keep incrementing
-the counter until the hash output integer just so happens to be in the
-right range. This takes an unpredictable amount of time (although on
-average you only have to try twice, if you truncate the hash output
-right), but provides a perfectly uniform output.
-
-Unbounded runtime is a drag, so the practice of e.g. the Ed25519 code is
-to use a hash that's at least 128 bits longer than the order, which is
-enough to "spread out" the wraparound region and reduce the bias to a
-small fraction of a bit.
+What's the range of this number? It will be 0 to ``2**len(seed_bytes)``.
+If we use too few bytes, then it will obviously not even cover the
+entire target range, so our first step is to make the seed larger than
+the total range. This introduces the possibility of getting a number
+that's too big, so we'll have to modulo down:
 
 ```
-# conversion that reduces the bias to a fraction of a bit
-assert (512/8) > (128 + 4*len("%x" % P))
-pw_hash_bytes = sha512(u"password".encode("utf-8")).digest()
-pw_hash_int = int(binascii.hexlify(pw_hash_bytes), 16)
-pw_hash_scalar = pw_hash_int % P
+def make_random_scalar_with_bytes(seed_length_bytes, P):
+    # check that our seed will produce sufficiently-large integers
+    # the right-hand side is roughly equal to ln2(P)
+    assert 8*seed_length_bytes > (4*len("{:x}".format(P)))
+    seed_bytes = os.urandom(seed_length_bytes)
+    hash_int = bytes_to_integer(seed_bytes)
+    scalar = hash_int % P
+    return scalar
 ```
 
-Fortunately we don't need any of this for PAKE protocols (neither SPAKE2
-nor other members of the family): the password isn't uniformly
-distributed anyways, so we don't require the scalar to be uniform
-either. The main reason for using a hash is to accomodate
-arbitrary-length passwords. 256 bits is more entropy than any
-conceivable password, so using ``convert_password_to_scalar()`` from
-above should be plenty.
+What's a reasonable choice of seed length? For the Curve25519 group, P
+between ``2**252`` and ``2**253``. If we use 253 random bits (which you
+get from 32 random bytes by doing something like ``seed_bytes[0] &=
+0x1F`` to mask out the top three bits), then we'll get a suitable value
+a bit more than half the time, and the modulo function will kick in
+(i.e. "aliasing" occurs) a bit less than half the time.
 
-Both sides must perform this conversion in exactly the same way,
-otherwise they'll get mismatched keys. All aspects must be the same: the
-overall algorithm, the hash function you use, the way the hash output is
-turned into an integer (big-endian vs little-endian will trip you up),
-and the final modulo operation.
+But that's pretty badly biased. Each time aliasing happens (e.g.
+``hash_int >= P``) means that two values of ``hash_int`` (which *is*
+uniform) are mapping to the same value of ``scalar`` (which therefore is
+not uniform). Consider the simple case of ``P = 2**8 - 1 == 255`` (so we
+want outputs from 0 to 254, inclusive), and our ``seed_length`` is 1
+byte. Seeds of 0 and 255 will both map to an output of 0, so zeros will
+appear in the output twice as frequently as any other value. The one
+case of aliasing will induce a bias in our output.
 
-Also note that, while scalars are "really" just integers, many crypto
-libraries (even ones written in languages like Python with built-in
-"bigint" support) do not represent them that way. Instead they may be
-stored in an opaque binary array, to make the math faster.
+The amount of bias, in a statistical sense, depends upon how many extra
+bits we start with, and how close our target ``P`` is to a power of 2,
+so it's something like ``ln2(P) - floor(ln2(P))``, using the base-2
+logarithm of our target P.
 
-When I wrote python-spake2, I was (incorrectly) worried about
-uniformity, so I used an overly complicated approach. If I were to start
-again, I'd use something simpler.
+## The Best Good-Enough Solution
 
-* [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/groups.py#L70):
-  HKDF(password, info="SPAKE2 pw", salt="", hash=SHA256), expand to
-  32+16 bytes, treat as big-endian integer, modulo down to the Ed25519
-  group order (2^252+stuff)
-* What draft-irtf-crfg-spake2-03 does: left as an exercise, although
-  key-stretching is recommended
-  
-Note that key-stretching only matters if the same password is used for
-multiple executions of the protocol. Stretching would be most useful on
-a login system using the SPAKE2+ variant. In SPAKE2+, the "server" side
-stores a derivative of the password, so a server compromise does not
-immediately allow client impersonation: this password derivative must
-first be brute-forced to reveal the original password, and each loop of
-this process will be lengthened by the stretch. In magic-wormhole, a new
-wormhole code is generated each time, and nothing is stored anywhere, so
-stretching is not necessary.
+The simplest solution that yields a minimal bias is to throw more bits
+at the problem. Using a ``seed_length`` that's 16 bytes (128 bits)
+larger than we really need reduces the bias to a statistically
+insignificant level. In this case, we're aliasing almost **all** the
+time:
 
-
-### Arbitrary Group Elements: M and N
-
-The M and N elements must be constructed in a way that
-[prevents anyone from knowing their discrete log](http://www.lothar.com/blog/54-spake2-random-elements/).
-This generally means hashing some seed and then converting the hash
-output into an element. For integer groups this is pretty easy: just
-treat the bits as an integer, and then clamp to the right range. For
-elliptic-curve groups, you treat the bits as a compressed representation
-of a point (i.e. pretend the bits are the Y coordinate, then recover the
-X coordinate), but you must make sure that the point is correct too: it
-must be on the correct curve (not the twist), and it must be in the
-correct subgroup.
-
-Why hash a string? We definitely want different values for M and N, we
-kind of want different values for different curves, and it would be cool
-to reduce our ability to fiddle with the results too much: the elements
-we pick should somehow be the most "obvious" choice. Another name for
-this property is the "nothing up my sleeve" number. djb's
-[bada55](https://bada55.cr.yp.to/) site (and the delightfully amusing
-[paper](https://bada55.cr.yp.to/bada55-20150927.pdf)) touch on this.
-Pretend that we're trying to build a sabotaged standard, defined to use
-an element for which we (and we alone) know a discrete log. Maybe we
-have some magic way to learn the discrete log of, say, one in every
-million elements. And say that instead of a seed, we're just using an
-integer. Now we could just keep trying sequential integers until we get
-an element that we can DLOG, and then we write this not-huge integer
-into our standard, and tell folks something like "oh, 31337 was my first
-phone number, so that was the most obvious choice", muahaha.
-
-Using a short seed, named something obvious like "M", gives us a warm
-fuzzy feeling that there's not much wiggle room to perform this
-hypothetical search for a bad element. It's not perfect, though, since
-we can probably just wiggle the other aspects (which hash to use, which
-other fields to include in the hash, the order to arrange them, etc). So
-hash-small-seed is nominally a good idea, but the real safety comes from
-the choice of group and the hardness of the DLOG assumption.
-
-Using a string seed that includes the curve name means we'll definitely
-get different (and quite unrelated) values for different curves, but to
-be honest using different curves pretty much gives you that anyways, and
-it's not clear how similar-looking elements in unrelated curves could be
-used as an attack anyways. The general concern is that you might use the
-same password on two different instances of the protocol (one with each
-curve), and then an attacker can somehow exploit confusion about which
-messages go with which curve.
-
-So that's how get a "safe" element. Nominally, this only ever needs to
-be done once: in theory, I could publish the program that turns a seed
-of "M" into 0x19581b8f3.. in a blog post, and then just copy the big hex
-values into python-spake2, and include a note that says "if you want
-proof that these were generated safely, go run the program from my blog.
-And if you actually went and downloaded that code and ran it and
-compared the strings, then you'd get the same level of safety. But
-nobody will actually do that, so we can inspire more confidence by
-adding the seed-to-element code into the library itself, and starting
-from a seed instead of a big hex string.
-
-Since we need all implementations to use the same M/N elements, this
-means we may need to port the specific seed-to-arbitrary-element routine
-from the original language (where maybe it was a pretty natural
-algorithm) into each target language (where it may seem
-overcomplicated).
-
-* [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/ed25519_basic.py#L271):
-  HKDF(seed, info="SPAKE2 arbitrary element", salt=""), with seed equal
-  to "M" or "N", expand to 32+16 bytes, treat as big-endian integer,
-  modulo down to field order (2^255-19), treat as a Y coordinate,
-  recover X coordinate, always use the "positive" X value, reject if
-  (X,Y) is not on curve, multiply by cofactor to get candidate point,
-  reject candidate is zero (i.e. we started with one of the 8 low-order
-  points), reject if candidate times cofactor is zero (i.e. candidate
-  was not in the right subgroup), return candidate. If the candidate is
-  rejected, increment the Y coordinate by 1, wrap to field order, try
-  again. Repeat until success. We expect this to loop 2*8=16 times on
-  average before yielding a valid point. This happens at module import
-  time.
-* Symmetric Mode: a group element named S is constructed in the same
-  way, with a seed of ``S``, and is used for blinding/unblinding in both
-  directions (where SPAKE2 says "N", replace it with S, and where SPAKE2
-  says "M", also replace it with S).
-* What draft-irtf-crfg-spake2-03 does: find the OID for the curve,
-  generate an infinite series of bytes (start with SHA256("$OID point
-  generation seed (M)") for that OID to get the first 32 bytes, then
-  SHA256(first 32 bytes) to get the second 32 bytes, repeat), slice into
-  encoded-element lengths, clamp bits as necessary, interpret as point,
-  if that fails repeat with the next slice. Do the same with "(N)".
-
-
-
-
-
-Change 'Title', but 'Slug' must match the directory name for images to work
-Markdown cheatsheet
-
-![alt-text](./IMG_6722.jpg "tooltip/popup text")
-
-## H2
-### H3
-
-* list1
-  more of list1
-* list2
-
-   * sublist2.1 (needs intervening newline to end list2) (doesn't work)
-   * sublist2.2
-
-*italic* **bold**
-
---strikethrough-- (doesn't work)
-
-links have [text](url "title")
-
-```python
-a = 'syntax highlighting' if True else 'not'
+```
+def make_random_scalar(P):
+    # conversion that reduces the bias to a fraction of a bit
+    minimal_length_bits = 4*len("%x" % P)
+    safe_length_bits = minimal_length_bits + 128
+    safe_length_bytes = safe_length_bytes // 8
+    # that gets us between 121 and 128 bits of safety margin
+    return make_random_scalar_with_bytes(safe_length_bytes, P)
 ```
 
-> blockquotes
-> on multiple lines
+This is the approach used by the Ed25519 codebase (note to self: wait,
+really? doesn't it just clamp 32 bytes? find the reference!).
+
+## The Exact Solution: Try-Try-Again
+
+There is a way to remove **all** the bias, but you probably aren't going
+to like it. To achieve zero bias, you remove the modulo-P step (so
+there's no chance of aliasing), and you add a loop that keeps trying new
+random seeds over and over again until the integer just happens to be in
+the right range.
+
+This takes an unpredictable amount of time, but provides a perfectly
+uniform output. The number of trials that you'll need depends upon the
+same bias that we're removing. If you mask the bytes down to the minimum
+number of bits, then the worst case (where P is just slightly larger
+than some power of 2) is an average of two passes. If you don't bother
+masking individual bits, then the worst case is 255 average passes. If P
+is just slightly **smaller** than a power of 2, the average is a single
+pass.
+
+But this is an exponential distribution: if you're really unlucky, it
+could take thousands of iterations before you find a suitable integer,
+or worse. The **mean** is bounded, but the **median** is infinite.
+
+I used this "try-try-again" algorithm as an option in
+[python-ecdsa](https://github.com/warner/python-ecdsa). But unbounded
+runtime is a drag, so the recommended approach is to use the
+extra-128-bits scheme described above (in ``make_random_scalar()``).
+
+This technique is also used (since around 2003 for large ranges, and
+[since 2010](https://bugs.python.org/issue9025) for all ranges) in
+Python's ``random.SystemRandom.randrange()`` function, and
+``secrets.randbelow()`` in Python3.6.
+
+Before that point, python2.4 had a
+[bug](http://bugs.python.org/issue812202) (reported by Ron Rivest, the R
+in RSA!) in which ``random.SystemRandom`` used ``/dev/urandom`` as a
+seed correctly, but ``randrange()`` used that seed to create a floating
+point number, then multiplied it out to the desired range (and rounded
+the result to an integer). As a result, no matter how large a range you
+asked for, the number could never have more than about 53 bits of
+entropy (and in fact the low-order bits were always zero, which is
+exactly where ECDSA is vulnerable).
+
+That bug was fresh in my mind when I wrote the python-ecdsa code, which
+is why I avoided using the standard library functions. But at this point
+it's probably safe to just use the following (though be sure to check
+what the underlying functions are really doing, especially if you're
+porting this to some other language which might have made the same
+mistake):
+
+```
+import secrets
+def make_random_scalar(P):
+    return secrets.randbelow(P)
+```
+
+or, on python2.7:
+
+```
+from random import SystemRandom
+def make_random_scalar(P):
+    return SystemRandom().randrange(P)
+```
+
+## Scalars From Seeds
+
+For testing, it may be useful to break the function up into two pieces.
+The private inner function is deterministic, and accepts the seed bytes
+as an argument. The externally-visible outer function is where
+``/dev/urandom`` is sampled. The inner function can be unit tested.
+
+```
+def _bytes_to_integer(seed_bytes):
+    return int(binascii.hexlify(seed_bytes), 16)
+def _map_bytes_to_scalar(seed_bytes, P):
+    # check that our seed will produce sufficiently-large integers
+    # the right-hand side is roughly equal to ln2(P)
+    assert 8*len(seed_bytes) > (4*len("{:x}".format(P)))
+    hash_int = _bytes_to_integer(seed_bytes)
+    scalar = hash_int % P
+    return scalar
+def make_random_scalar(P):
+    # conversion that reduces the bias to a fraction of a bit
+    minimal_length_bits = 4*len("%x" % P)
+    safe_length_bits = minimal_length_bits + 128
+    safe_length_bytes = safe_length_bytes // 8
+    # that gets us between 121 and 128 bits of safety margin
+    seed_bytes = os.urandom(seed_length_bytes)
+    return _map_bytes_to_scalar(seed_bytes, P)
+```
+
+This can also be used in a related function: mapping seeds to scalars.
+This function is needed for protocols like SPAKE2, where the
+``password`` input must be converted into a scalar for the blinding
+step. In this case, uniformity is not strictly necessary (the SPAKE2
+password isn't randomly distributed, so any deterministic function of it
+will have the same non-random distribution). But if your library already
+has ``_map_bytes_to_scalar()``, then it may be easiest to build on top
+of that:
+
+```
+def password_to_scalar(pw, P):
+    seed = sha256(pw).digest()
+    return _map_bytes_to_scalar(seed, P)
+```
+
+In addition, you might want the seed-to-scalar function to behave
+differently for different protocols, so the same password used in two
+different places doesn't produce values which could be mixed/matched in
+an attack. The usual way to accomplish this is to feed some sort of
+algorithm identifier into the hash function. Some options are:
+
+* a simple prefix string:  ``sha256("my algorithm name" + pw)``
+* a real key-derivation function: ``HKDF(context="my algo",
+  secret=pw)``. This also gives you exact control over the number of
+  bytes, not limited to the native output size of the hash function.
+* some modern hash functions like BLAKE2 have dedicated
+  "personalization" inputs: ``blake2(input=pw, personalize="my algo name")``
+
+## Use in python-spake2
+
+All of this is an attempt to explain why the password-to-scalar function
+in my [python-spake2](https://github.com/warner/python-spake2) library
+is so over-complicated. When I wrote that function, I was worried that
+the blinding scalar needed to be uniformly random (like most other
+scalars in cryptographic protocols). So I combined all the techniques
+above: both algorithm-specific hash personalization *and* using an
+oversized hash output.
+
+In retrospect, it would probably have been ok to just truncate a plain
+SHA256 output to something less than the Curve25519 group order. In
+fact, just using 128 bits would have been enough, which removes the need
+for the modulo step.
+
+```
+def password_to_scalar(pw, P):
+    return _bytes_to_integer(sha256(pw).digest()[:16])
+```
+
+So if you're looking at the ``password_to_scalar``
+[function](https://github.com/warner/python-spake2/blob/master/src/spake2/groups.py#L70)
+in [python-spake2](https://github.com/warner/python-spake2) and think
+it's unnecessarily complicated, that's why.
