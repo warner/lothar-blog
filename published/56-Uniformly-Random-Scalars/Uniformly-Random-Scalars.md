@@ -1,6 +1,7 @@
 Slug: 56-Uniformly-Random-Scalars
 Date: 2017-07-15 21:13
 Title: Uniformly Random Scalars
+Category: cryptography
 
 !BEGIN-SUMMARY!
 Many cryptographic protocols, like Diffie-Hellman and SPAKE2, require a
