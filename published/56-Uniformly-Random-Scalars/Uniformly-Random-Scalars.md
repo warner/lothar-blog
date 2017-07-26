@@ -1,4 +1,4 @@
-Slug: Uniformly-Random-Scalars
+Slug: 56-Uniformly-Random-Scalars
 Date: 2017-07-15 21:13
 Title: Uniformly Random Scalars
 
