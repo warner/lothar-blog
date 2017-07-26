@@ -21,7 +21,7 @@ describes the choices I happened to make while writing python-spake2,
 none of which are necessarily the best, effectively (but accidentally)
 defining a specification of sorts.
 
-## Left As An Exercise For The Author
+## Left As An Exercise For The Programmer
 
 The
 [SPAKE2 paper](http://www.di.ens.fr/~pointche/Documents/Papers/2005_rsa.pdf),
@@ -32,11 +32,13 @@ existing ones, but unfortunately not for the necessary engineering work
 of defining test vectors and data-serialization formats.
 
 If you want to actually implement the protocol, you must answer a number
-of extra questions (listed below). To make it interoperate with others,
-you must both use the same answers. For protocols that are "grown up"
-enough, folks like the IETF will publish RFCs with those details. SPAKE2
-is not there yet ([RFC8125](https://www.rfc-editor.org/rfc/rfc8125.txt)
-defines some considerations, and the CFRG has an
+of extra questions (listed below). For your program to interoperate with
+someone else's, you must both use the same answers. For protocols that
+are "grown up" enough, folks like the IETF will publish RFCs with those
+details. SPAKE2 is not there yet
+([RFC8125](https://www.rfc-editor.org/rfc/rfc8125.txt) defines some
+considerations, and the CFRG has
+an
 [expired draft](https://datatracker.ietf.org/doc/draft-irtf-cfrg-spake2/)),
 so lucky us, we're on the cutting edge! The first few implementations
 might choose mutually-incompatible approaches, but eventually we can
@@ -52,24 +54,31 @@ discussions there may be useful. Jonathan Lange and JP Calderone are
 working on [haskell-spake2](https://github.com/jml/haskell-spake2) and
 are aiming for compatibility with python-spake2.
 
+I'm going to call this set of decisions the "**0.7 protocol**", to
+emphasize my hope that some day we'll get a fully RFC-blessed
+specification (and we'll call it "1.0"). When that happens, I'll update
+python-spake2 to implement 1.0, and provide an "0.7 mode" for backwards
+compatibility with older clients.
+
 
 ## SPAKE2 Overview
 
 SPAKE2 belongs to a family of protocols named PAKE, which stands for
 Password-Authenticated Key Exchange.
 
-The SPAKE2 protocol lets Alice and Bob exchange messages (one each), and
-then both sides calculate a secret key. If Alice and Bob used the same
-password, their keys will be the same, and nobody else will know what
-that key is.
+The SPAKE2 protocol helps two people who start out knowing some shared
+secret code or password. It lets our Alice and Bob exchange messages
+(one each), and then both sides calculate a secret key. If Alice and Bob
+used the same code, their keys will be the same, and nobody else will
+know what that key is.
 
-You can imagine that Alice gives the password (and some other
-identifying data) to her friendly local SPAKE2 Robot, which she bought
-off the shelf at SPAKE2 Robots R' Us. The robot gives her a message to
-deliver to Bob's robot. Meanwhile Bob is doing almost exactly the same
-thing. When Alice gives Bob's message to her local robot, her robot
-prints out a random-looking key. At the same time, Bob gives Alice's
-message to his robot, and his robot prints out (hopefully) the same key.
+You can imagine that Alice gives the code (and some other identifying
+data) to her friendly local SPAKE2 Robot, which she bought off the shelf
+at SPAKE2 Robots R' Us. The robot gives her a message to deliver to
+Bob's robot. Meanwhile Bob is doing almost exactly the same thing. When
+Alice gives Bob's message to her local robot, her robot prints out a
+random-looking key. At the same time, Bob gives Alice's message to his
+robot, and his robot prints out (hopefully) the same key.
 
 Both Alice and Bob have to tell their robots that the first person
 playing this game is named "Alice", and the second person is named
@@ -135,8 +144,10 @@ should derive it from the shared key with
 [HKDF](https://tools.ietf.org/html/rfc5869), outside the scope of the
 SPAKE2 library.
 
-(You run both halves of the API on both sides. Each side will generate
-one message and accept one message. Two messages are generated in all.)
+You run both halves of the API on both sides. Each side will generate
+one message and accept one message. Two messages are generated in all.
+
+<img alt="SPAKE2 Message Flow" src="./flow.png" />
 
 The outbound message will be a bytestring, and the application will be
 responsible for encoding it in whatever way is needed for the channel
@@ -163,7 +174,7 @@ as the identities of the two sides.
 
 The application author's responsibilities are:
 
-* give their user a way to enter a password
+* give their user a way to enter a code or password
 * deliver that password to your library (the first function)
 * take the message your library returns and deliver it correctly to some
   remote application
@@ -186,7 +197,7 @@ The details that any given SPAKE2 implementation must define are:
 * how to represent/encode the "identities" of each side
 * what group to use
 * what generator element to use
-* how to represent/encode the password, both as a scalar and in the
+* how to represent/encode the code/password, both as a scalar and in the
   transcript
 * what "arbitrary group elements" to use for M and N (and S)
 * how to encode the group element that is sent to the other party
@@ -284,7 +295,7 @@ the group's order will constrain many other choices.
   reader, but sample M/N values are generated for SEC1 P256/P384/P521,
   and Ed25519 gets a passing mention
 
-### Password
+### Code/Password
 
 The input password should be a bytestring, of any length (your library
 shouldn't impose arbitrary length limits). Any necessary encoding should
@@ -296,8 +307,8 @@ itself).
 The same arguments for identities apply here, but I'm even more in favor
 of a bytestring API (rather than unicode), because it's entirely valid
 to have the password be the output of some other hash function (maybe
-you stretch it with [Argon2](https://www.argon2.com/) first), in which
-case requiring a unicode string would be messy.
+you stretch it with bcrypt, scrypt, or [Argon2](https://www.argon2.com/)
+first), in which case requiring a unicode string would be messy.
 
 The password is needed in two places. The first (and most complicated)
 is as a scalar, where it is used to blind the public Diffie-Hellman
@@ -308,27 +319,19 @@ For the first case, the password must be converted into a scalar of the
 chosen group. This is enough of a nuisance that PAKE papers like to
 pretend that users have hundred-digit integers as passwords rather than
 strings, so they can avoid discussing how to get from one to the other.
-Our SPAKE2 library will be responsible for this conversion.
+We can't dodge this task: our SPAKE2 library will be responsible for
+this conversion.
 
-There is some confusion about the precise range of scalars. Some
-references (including the original SPAKE2 paper) say ``Zp``, which means
-any positive integer less than P (``0 <= pw_scalar < P``). The
-[Handbook of Applied Cryptography](http://cacr.uwaterloo.ca/hac/)
-section on Diffie-Hellman (protocol 12.47, page 516) says scalars should
-be ``1 <= x <= P-2`` (excluding both 0 and -1). I'm pretty sure that 0
-is a bad choice: it will cause the resulting shared element to always be
-the same thing (the identity element), independent of the password. But
-P is huge, so the chance of accidentally getting a scalar of 0 (or any
-other specific value) is effectively zero. And scalars only come from
-trusted sources (ourselves, or our state vector), not from the network
-(where an attacker could manipulate them), so we don't need to worry
-about deliberate sabotage.
+Turning a password into a scalar is closely related to generating a
+uniformly random scalar, so see my
+[previous blog post](http://www.lothar.com/blog/56-Uniformly-Random-Scalars/)
+for some discussion about the process. To summarize, we don't need
+uniformity for SPAKE2, we just need to emit a non-negative integer less
+than some large prime number P (equal to the order of the group we're
+using), and preserve all the entropy of the original password
+distribution.
 
-So for simplicity, we'll just say that this scalar will be an integer
-from 0 to the group order (the order will be some large prime number P,
-so the scalar will be meet the constraint ``0 <= pw_scalar < P``). This
-is typically performed by hashing the password string into bits,
-treating those bits as an integer, then taking the result ``mod P``.
+In practice, this means something like:
 
 ```
 def convert_password_to_scalar(password_bytes, P):
@@ -338,50 +341,31 @@ def convert_password_to_scalar(password_bytes, P):
     return pw_scalar
 ```
 
-It is tempting to use a function that guarantees a uniform distribution
-of scalars, without the above example's bias towards the smaller ones
-(if ``P`` is a bit smaller than ``2^256`` then the first few scalars
-will occur twice as frequently as the rest; if ``P`` is larger, then the
-last few scalars won't occur at all). Especially since that function may
-already exist: there are other places in Diffie-Hellman and SPAKE2 where
-you need to generate a uniformly random scalar, and in those cases it's
-easy to combine a random seed (from ``os.urandom()``) with a
-seed-to-uniform-scalar function. This also makes deterministic unit
-tests easier to write: just use a fixed seed.
+We start with SHA256 to convert the arbitrarily-sized password into a
+fixed-size bytestring, and also reduce the chance that distinct
+pathological inputs (empty string, all-NUL) will give us distinct
+pathological scalars (like 0, which might not be good). Then we treat
+those 32 random-ish bytes as an integer, then take the result modulo P
+to make sure it's in the right range (no matter what P actually is).
 
-It is possible to achieve uniformity, but I'll defer the details of such
-an algorithm to a future blog post, because we don't actually need it
-for this particular use case. The password isn't uniformly distributed
-in the first place, so it's ok if the scalar is somewhat biased.
+In large groups (``P > 2**256``), this won't fill the whole range, but
+that's ok. In any group, this will have a bias (smaller scalars will
+occur more frequently than large ones), but that's also ok for SPAKE2
+(the password isn't uniformly distributed in the first place). It's
+definitely **not** ok for Diffie-Hellman: see
+the [blog post](http://www.lothar.com/blog/56-Uniformly-Random-Scalars/)
+for details. SHA256 is wide enough to preserve more entropy than any
+conceivable password. A wider hash (SHA512, Blake2) would be fine too,
+but e.g. a 16-bit hash would waste a lot of password entropy.
 
-The main reason for using a hash is to accomodate arbitrary-length
-human-meaningful passwords, which are decided without any knowledge of
-the order of the curve they'll eventually be applied to. A secondary
-reason is to support our assumption above (about 0 being statistically
-impossible): we want to make sure than an empty password, or a password
-consisting of all 0x00 bytes, will still give us a reasonable non-zero
-scalar.
+You might already have a function lying around which turns
+uniformly-random seeds into uniformly-random scalars: this is safe to
+use for the SPAKE2 password, but it's overkill, and you might get some
+funny looks from the standards committee.
 
-The exact hash function doesn't matter too much, but should be wide
-enough to let each password map to a distinct scalar (e.g. a 16-bit hash
-function would waste a lot of password entropy). 256 bits is more
-entropy than any conceivable password, so using
-``convert_password_to_scalar()`` from above should be plenty, regardless
-of the curve order.
-
-If the group order is smaller than ``2^256``, then the modulo function
-will kick in, to wrap the scalar down into the right range. Technically
-it would be fine to use the larger unwrapped integers, because
-technically "scalars" are actually "equivalence classes of integers
-modulo P", which means that when you pass in a "1", you're really
-passing an abstract object that represents every integer ``x`` such that
-``mod(x,P) == 1`). But crypto APIs expect concrete fixed-sized inputs,
-not abstract equivalence-class objects, and size-limited integers meet
-that expectation.
-
-Also note that some crypto libraries store scalars as opaque binary
-structures (e.g. arrays of 51 bit integers, to
-[speed up](https://www.imperialviolet.org/2010/12/04/ecc.html) the
+Note that some crypto libraries store scalars as opaque binary
+structures (e.g. arrays of 51 bit integers,
+to [speed up](https://www.imperialviolet.org/2010/12/04/ecc.html) the
 math), even when the language has built-in "bigint" support. So your
 password-to-scalar function may need to use a library-specific
 large-integer-to-scalar-object function.
@@ -414,7 +398,8 @@ immediately allow client impersonation: this password derivative must
 first be brute-forced to reveal the original password, and each loop of
 this process will be lengthened by the stretch. In magic-wormhole, a new
 wormhole code is generated each time, and nothing is stored anywhere, so
-stretching is not necessary.
+stretching is not necessary. I think key-stretching should be done
+outside the SPAKE2 library.
 
 
 ### Arbitrary Group Elements: M and N
@@ -430,7 +415,7 @@ X coordinate), but you must make sure that the point is correct too: it
 must be on the correct curve (not the twist), and it must be in the
 correct subgroup.
 
-Why hash a string? We definitely want different values for M and N, we
+Why hash a seed? We definitely want different values for M and N, we
 kind of want different values for different curves, and it would be cool
 to reduce our ability to fiddle with the results too much: the elements
 we pick should somehow be the most "obvious" choice. Another name for
@@ -467,12 +452,18 @@ So that's how get a "safe" element. Nominally, this only ever needs to
 be done once: in theory, I could publish the program that turns a seed
 of "M" into 0x19581b8f3.. in a blog post, and then just copy the big hex
 values into python-spake2, and include a note that says "if you want
-proof that these were generated safely, go run the program from my blog.
-And if you actually went and downloaded that code and ran it and
+proof that these were generated safely, go run the program from my
+blog". And if you actually went and downloaded that code and ran it and
 compared the strings, then you'd get the same level of safety. But
 nobody will actually do that, so we can inspire more confidence by
 adding the seed-to-element code into the library itself, and starting
 from a seed instead of a big hex string.
+
+(note that doing this at each startup may add a
+[non-trivial slowdown](https://github.com/warner/python-spake2/commit/b77f73207494cc60553dbefa814f3284b989faaa) to
+applications: a suitable compromise might be to hard-code the elements
+for the regular code path, but compare them against recomputed values in
+the library's unit tests)
 
 Since we need all implementations to use the same M/N elements, this
 means we may need to port the specific seed-to-arbitrary-element routine
@@ -515,7 +506,7 @@ define how we turn group elements into bytes, and back again.
 
 (while you could define the API to return an abstract element, and push
 the serialization job onto the application, that sounds unlikely to ever
-work)
+interoperate with other libraries)
 
 The X.509 certificate world has a fairly well-established process for
 doing this, called BER or DER, and it includes things like multiple
@@ -588,7 +579,7 @@ assign different sides.
 Now that each side has sent their element, and received the other side's
 element, the SPAKE2 math gets us a secret shared element. However this
 isn't a key yet. The remainder of the protocol is responsible for
-leveraging this secret element and producing a proper shared key.
+leveraging this secret element in the production of a proper shared key.
 
 The secrecy of the shared key comes entirely from the secrecy of the
 shared element (the original password is also involved, to make the
@@ -614,7 +605,7 @@ It's as if Alice's SPAKE2 Robot keeps a journal as it works, with the
 following entries:
 
 * This a journal about a SPAKE2 conversation.
-* We're using a password of: ``password``
+* I'm using a password of: ``password``
 * The first side's identity is: ``Alice``
 * The second side's identity is: ``Bob``
 * The first side sent a message to the second side with: ``MESSAGE1``
@@ -665,7 +656,7 @@ delimiter:
 
 ```
 def unsafe_cat2(a, b): return a+":"+b
-assert unsafe_cat("you:lo", "se") != unsafe_cat("you", "lo:se")
+assert unsafe_cat2("you:lo", "se") != unsafe_cat2("you", "lo:se")
 ```
 
 Escaping the delimiter can work, but is touchy.
@@ -742,15 +733,17 @@ they use it again on the message they receive from their peer. It is
 to use a [fresh](https://www.xkcd.com/221/) new scalar each time they
 run the protocol.
 
-This scalar be chosen uniformly from the full range (excluding 0, so
-from 1 to P-1 inclusive). The considerations and techniques described
-above are all important, however since this is kept secret, it doesn't
-actually matter how any given implementation does it.
+This scalar must be chosen uniformly from the full range (``0 <= x <
+P``). The considerations and techniques described
+[earlier](http://www.lothar.com/blog/56-Uniformly-Random-Scalars/) are
+all important, however since this scalar is kept secret,
+interoperability is not affected by how any given implementation does
+it.
 
 ### Things That Do Matter
 
 A summary of the choices that both sides must agree upon to achieve
-interoperability (some of these are made by in library's code, and
+interoperability (some of these are made by the library's code, and
 others are *inputs* to the library):
 
 * the two identity strings
@@ -758,7 +751,7 @@ others are *inputs* to the library):
 * the group to use
 * which generator of that group to use
 * how group elements are encoded (for messages and the transcript)
-* the "arbitrary elements" (M/N)
+* the "arbitrary elements" (M/N/S)
 * the password
 * how the password is turned into a scalar
 * how the password is encoded into the transcript
