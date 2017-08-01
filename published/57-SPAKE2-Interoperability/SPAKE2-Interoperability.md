@@ -1,5 +1,5 @@
 Slug: 57-SPAKE2-Interoperability
-Date: 2017-06-04 09:22
+Date: 2017-07-31 19:37
 Title: SPAKE2 Interoperability
 Category: cryptography
 
