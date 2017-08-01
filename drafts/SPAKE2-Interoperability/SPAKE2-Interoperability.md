@@ -52,10 +52,9 @@ of the [SJCL Project](https://github.com/bitwiseshiftleft/sjcl/) (a
 pure-javascript crypto library), where we were able to hash out a
 mostly-interoperable pair of libraries (python and JS). Some of the
 discussions there may be useful. Jonathan Lange and JP Calderone are
-working on [haskell-spake2](https://github.com/jml/haskell-spake2) and
-are aiming for compatibility with python-spake2. And my
-[Rust library](https://github.com/warner/spake2.rs) is aiming for the
-same thing.
+working on [haskell-spake2](https://github.com/jml/haskell-spake2), and
+I'm working on a [Rust library](https://github.com/warner/spake2.rs),
+and we're all aiming for compatibility with python-spake2.
 
 I'm going to call this set of decisions the "**0.7 protocol**", to
 emphasize my hope that some day we'll get a fully RFC-blessed
