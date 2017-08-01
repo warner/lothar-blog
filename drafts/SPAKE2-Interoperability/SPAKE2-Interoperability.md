@@ -4,8 +4,8 @@ Title: SPAKE2 Interoperability
 Category: cryptography
 
 !BEGIN-SUMMARY!
-I've been working on
-a [Rust implementation](https://github.com/warner/spake2.rs) of SPAKE2.
+I've been [working on](https://github.com/warner/spake2.rs)
+a [Rust implementation](https://crates.io/crates/spake2) of SPAKE2.
 I want it to be compatible with
 my [Python version](https://github.com/warner/python-spake2). What do I
 need to change? Where have I accidentally indulged in protocol design,
@@ -44,21 +44,24 @@ so lucky us, we're on the cutting edge! The first few implementations
 might choose mutually-incompatible approaches, but eventually we can
 learn from each other and agree upon something interoperable.
 
-The 0.7 release of my python-spake2 library incorporates some decisions
-we made on
+The 0.7 release of my 
+[python-spake2 library](https://github.com/warner/python-spake2)
+incorporates some decisions we made on
 [pull request #273](https://github.com/bitwiseshiftleft/sjcl/pull/273)
 of the [SJCL Project](https://github.com/bitwiseshiftleft/sjcl/) (a
 pure-javascript crypto library), where we were able to hash out a
 mostly-interoperable pair of libraries (python and JS). Some of the
 discussions there may be useful. Jonathan Lange and JP Calderone are
 working on [haskell-spake2](https://github.com/jml/haskell-spake2) and
-are aiming for compatibility with python-spake2.
+are aiming for compatibility with python-spake2. And my
+[Rust library](https://github.com/warner/spake2.rs) is aiming for the
+same thing.
 
 I'm going to call this set of decisions the "**0.7 protocol**", to
 emphasize my hope that some day we'll get a fully RFC-blessed
-specification (and we'll call it "1.0"). When that happens, I'll update
-python-spake2 to implement 1.0, and provide an "0.7 mode" for backwards
-compatibility with older clients.
+specification (deserving of the name "1.0"). When that happens, I'll
+update python-spake2 to implement 1.0, and provide an "0.7 mode" for
+backwards compatibility with older clients.
 
 
 ## SPAKE2 Overview
@@ -829,3 +832,36 @@ with debugging mismatches, this test server should also reveal its
 internal state: the secret scalar, and the full transcript. If your
 implementation gets a different key, you can go back and compare the
 intermediate values until you find the first one that doesn't match.
+
+I'm working on one, and I know JP has something in the works too.
+
+## Conclusions
+
+SPAKE2 is a neat protocol: it's pretty simple (as these things go), and
+it enables a good chunk of functionality that none of the other crypto
+primitives can provide. 
+
+There seems to be a long "lead time" as cryptographic protocols slowly
+make their way from the academic world down into the hands of everyday
+programmers. There's all sorts of exciting stuff waiting for you in the
+literature, but most of the tools that your average developer (or
+security engineer) will feel comfortable using are decades old. In rough
+order of familiarity:
+
+| family                | year introduced | age | modern example |
+| ------                | --------------- | --- | -------------- | 
+| hashes                | ~1979 | ~40 years | SHA256 (2001) |
+| symmetric encryption  | ~50 BC (Caesar) | ~2000 years | AES (1998) |
+| MACs                  | ~1984 (MAA/ISO8731-2) | ~30 years | HMAC (1996) |
+| public-key signatures | 1977 (RSA) | ~40 years | Ed25519 (2011) |
+| public-key encryption | 1977 (RSA) | ~40 years | NaCl SecretBox (2010) |
+
+And I think the PAKE family is ready to be the next thing through this
+pipeline: the family as a whole was introduced with EKE in 1992 (25
+years ago!), and SPAKE2 itself is now 12 years old.
+
+But to get there, SPAKE2 must go through the same process as the rest of
+these protocols. We need a good specification, as well as a certain
+amount of evangelism, clear use cases, examples, prior art, visible
+trailblazers, and developer confidence. Hopefully this list of
+compatibility criteria can help us get there.
