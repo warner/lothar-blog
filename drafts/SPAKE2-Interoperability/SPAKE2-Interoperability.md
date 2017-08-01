@@ -1,6 +1,6 @@
-Slug: Testing-SPAKE2-Interoperability
+Slug: SPAKE2-Interoperability
 Date: 2017-06-04 09:22
-Title: Testing SPAKE2 Interoperability
+Title: SPAKE2 Interoperability
 Category: cryptography
 
 !BEGIN-SUMMARY!
