@@ -261,7 +261,7 @@ If Carol and Dave are using this protocol, and Carol passes
 ``identity_A="Carol"`` and ``identity_B="Dave"``. If Carol says
 ``side=A``, then Dave must say ``side=B``.
 
-* What python-spake2 does: bytestrings
+* What python-spake2-0.7 does: bytestrings
 * What draft-irtf-crfg-spake2-03 does: bytestrings
 * Symmetric mode: there is only one identity, named "idS", but it can
   still be set to an arbitrary string to distinguish between different
@@ -292,7 +292,7 @@ Both sides must use the same group, of course. Every group comes with a
 standard generator to use for the base-point "scalarmult" operation, and
 the group's order will constrain many other choices.
 
-* What python-spake2 does: defaults to Ed25519, but offers
+* What python-spake2-0.7 does: defaults to Ed25519, but offers
   1024/2048/3072-bit integer groups too.
 * What draft-irtf-crfg-spake2-03 does: left as an exercise for the
   reader, but sample M/N values are generated for SEC1 P256/P384/P521,
@@ -386,7 +386,7 @@ range than is really necessary before moduloing down to P; this reduces
 the bias to a tiny fraction of a bit). If I were to start again, I'd use
 something simpler.
 
-* [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/groups.py#L70):
+* [What python-spake2-0.7 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/groups.py#L70):
   HKDF(password, info="SPAKE2 pw", salt="", hash=SHA256), expand to
   32+16 bytes, treat as big-endian integer, modulo down to the Ed25519
   group order (2^252+stuff)
@@ -474,7 +474,7 @@ from the original language (where maybe it was a pretty natural
 algorithm) into each target language (where it may seem
 overcomplicated).
 
-* [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/ed25519_basic.py#L271):
+* [What python-spake2-0.7 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/ed25519_basic.py#L271):
   HKDF(seed, info="SPAKE2 arbitrary element", salt=""), with seed equal
   to "M" or "N", expand to 32+16 bytes, treat as big-endian integer,
   modulo down to field order (2^255-19), treat as a Y coordinate,
@@ -569,7 +569,7 @@ given a message from the same side as it was told to be in the first
 function, it can throw an exception which instructs the programmer to
 assign different sides.
 
-* [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/ed25519_basic.py#L342):
+* [What python-spake2-0.7 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/ed25519_basic.py#L342):
   encode points like Ed25519 does, reject not-on-curve and
   not-in-correct-subgroup points during parsing. A one-byte "side
   identifier" is prepended to the outgoing message, and this identifier
@@ -662,7 +662,10 @@ def unsafe_cat2(a, b): return a+":"+b
 assert unsafe_cat2("you:lo", "se") != unsafe_cat2("you", "lo:se")
 ```
 
-Escaping the delimiter can work, but is touchy.
+Escaping the delimiter can work, but is touchy (you must escape the
+escape character too). The rule is that if you could reliably parse the
+concatenated string back into the original pieces, no matter how weird
+those pieces were, then you've got a secure concatenation function.
 
 Two safe and easy ways to do this are:
 
@@ -685,7 +688,7 @@ def safe_hashcat(a, b):
 Of course, both sides must use the same order of elements, the same
 encoding for each element, and the same final concatenation technique.
 
-* [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/spake2.py#L45):
+* [What python-spake2-0.7 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/spake2.py#L45):
   transcript =
   sha256(password)+sha256(idA)+sha256(idB)+msg_A+msg_B+shared_element.to_bytes()
 * Symmetric Mode: sort the two messages lexicographically to get
@@ -698,6 +701,13 @@ the wire. The hash uses the password scalar, rather than the password
 itself. All fields are length-prefixed even though most of them have
 fixed lengths. And for some reason (maybe a typo) ``B_msg`` appears
 before ``A_msg``, even though ``idA`` appears before ``idB``.
+
+Also note the context of that draft's protocol: IETF specifications are
+frequently composed together. The SPAKE2 conversation defined therein
+may get embedded in other protocols (e.g. TLS) which have their own
+notion of a transcript, object encoding, or required hash functions. So
+the draft might not want to overspecify the protocol, for fear of
+inhibiting composition.
 
 ### Hashing the Transcript
 
@@ -719,11 +729,13 @@ choices that it makes. Alternatively, the transcript can include a fixed
 string that encapsulates the rest of the protocol (the first line could
 be "This is a journal about an RFC-NNNN -formatted SPAKE2 conversation",
 where the RFC specifies the hashes and groups and fixed elements and
-everything else).
+everything else). But of course using the name of the specification in
+the specification itself is a circular definition that would probably
+sink any chances of getting the spec published.
 
 Both sides must use the same hash function and personalization choices.
 
-* [What python-spake2 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/spake2.py#L45):
+* [What python-spake2-0.7 does](https://github.com/warner/python-spake2/blob/v0.7/src/spake2/spake2.py#L45):
   key = sha256(transcript)
 * What draft-irtf-crfg-spake2-03 uses: left as an exercise
 
@@ -775,12 +787,11 @@ show up as interoperability failures):
 The interactive nature of the protocol makes it particularly hard to
 write unit tests of interoperability, especially the kind where you
 compare a new execution transcript against a known "good" trace copied
-earlier. SPAKE2 is a form of ZKP ("zero-knowledge proof"): you're
-proving that you know the same password as the other side, without
-revealing any other knowledge about it. In fact the way you prove that
-this is a ZKP is by showing that someone who doesn't know the password
-could still generate a transcript that's indistinguishable from a real
-one.
+earlier. SPAKE2 is a form of ZKP ("zero-knowledge proof"): Alice is
+proving that she knows the same password as Bob, without revealing any
+other knowledge about that password. In fact the way you prove SPAKE2 is
+a ZKP is to demonstrate that someone who doesn't know the password could
+still generate a transcript that's indistinguishable from a real one.
 
 So we can't just take a transcript of some reference implementation
 (say, python-spake2) and copy it into the non-interactive unit tests of
@@ -822,6 +833,9 @@ accepts the scalar as input and generates the first message (and the
 state that's passed to the second half). The inner function should never
 be exposed to applications: it should be private to the library's own
 unit tests.
+
+As an added benefit, the inner function is fully deterministic and
+purely-functional.
 
 ### Testing Server
 
